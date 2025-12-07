@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>High Stakes Truth</title>
+    
+    <!-- TAILWIND & CONFIG -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        page: 'var(--c-page)',
+                        surface: 'var(--c-surface)',
+                        'surface-highlight': 'var(--c-surface-highlight)',
+                        text: 'var(--c-text)',
+                        'text-dim': 'var(--c-text-dim)',
+                        accent: 'var(--c-accent)',
+                        'accent-hover': 'var(--c-accent-hover)',
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* THEME VARIABLES */
+        :root {
+            --c-page: #0f172a;
+            --c-surface: #1e293b;
+            --c-surface-highlight: #334155;
+            --c-text: #f8fafc;
+            --c-text-dim: #94a3b8;
+            --c-accent: #f59e0b;
+            --c-accent-hover: #d97706;
+        }
+
+        [data-theme="casino"] {
+            --c-page: #064e3b;
+            --c-surface: #065f46;
+            --c-surface-highlight: #047857;
+            --c-text: #ecfdf5;
+            --c-text-dim: #a7f3d0;
+            --c-accent: #fbbf24;
+            --c-accent-hover: #d97706;
+        }
+
+        [data-theme="cyber"] {
+            --c-page: #09090b;
+            --c-surface: #18181b;
+            --c-surface-highlight: #27272a;
+            --c-text: #fafafa;
+            --c-text-dim: #a1a1aa;
+            --c-accent: #c026d3;
+            --c-accent-hover: #a21caf;
+        }
+
+        body {
+            background-color: var(--c-page);
+            color: var(--c-text);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: background-color 0.5s ease;
+        }
+
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        .view-section {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 0;
+            background-color: var(--c-page);
+        }
+        
+        .view-active {
+            opacity: 1 !important;
+            pointer-events: auto;
+            z-index: 20; 
+        }
+
+        /* CARD SKINS */
+        .fact-card {
+            background: linear-gradient(145deg, var(--c-surface), var(--c-page));
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.3s;
+        }
+        .skin-gold {
+            background: linear-gradient(135deg, #453005, #1e1b10);
+            border: 2px solid #f59e0b;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+        }
+        .skin-cyber {
+            background: repeating-linear-gradient(45deg, #0f172a, #0f172a 10px, #1e293b 10px, #1e293b 20px);
+            border: 2px solid #06b6d4;
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+            text-shadow: 0 0 5px #06b6d4;
+        }
+        .skin-blueprint {
+            background-color: #1e3a8a;
+            background-image: radial-gradient(#3b82f6 1px, transparent 1px);
+            background-size: 20px 20px;
+            border: 2px solid #93c5fd;
+        }
+
+        /* ANIMATIONS */
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 70% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes tickUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-60px) scale(1.5); opacity: 0; } }
+        .money-float { position: absolute; font-weight: 900; font-size: 2.5rem; pointer-events: none; text-shadow: 0 4px 10px rgba(0,0,0,0.5); animation: tickUp 1.2s cubic-bezier(0.19, 1, 0.22, 1) forwards; z-index: 100; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px) rotate(-5deg); } 40% { transform: translateX(10px) rotate(5deg); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
+        .shake { animation: shake 0.4s ease-in-out; }
+        .pulse-win { animation: pulse-gold 0.6s ease-out; }
+        @keyframes pulse-gold { 0% { box-shadow: 0 0 0 0 var(--c-accent); border-color: var(--c-accent); } 50% { transform: scale(1.02); } 70% { box-shadow: 0 0 0 30px rgba(245, 158, 11, 0); } 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); border-color: rgba(255,255,255,0.1); } }
+
+        /* VEGAS BACKGROUND ANIMATION */
+        .vegas-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .floater {
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0;
+            color: var(--c-accent);
+            animation: floatUp 15s linear infinite;
+            bottom: -50px;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.15; }
+            90% { opacity: 0.15; }
+            100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* SLIDER */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; padding: 10px 0; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 32px; width: 32px; border-radius: 50%; background: var(--c-accent); cursor: pointer; margin-top: -14px; box-shadow: 0 0 15px rgba(0,0,0, 0.5); border: 3px solid #fff; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: var(--c-surface-highlight); border-radius: 4px; }
+
+        .hidden { display: none !important; }
+        .modal-backdrop { background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 60; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .selected-ring { ring-width: 4px; ring-color: var(--c-accent); border-color: var(--c-accent) !important; }
+        
+        /* Disabled button state */
+        .btn-disabled { opacity: 0.5; pointer-events: none; }
+    </style>
+</head>
+<body class="h-[100dvh] w-full max-w-md mx-auto relative overflow-hidden transition-colors duration-500">
+
+    <!-- VIEW: START SCREEN -->
+    <section id="view-start" class="view-section view-active flex flex-col items-center justify-start p-6 text-center z-50 pt-12">
+        
+        <!-- Vegas Background -->
+        <div class="vegas-bg">
+            <div class="floater" style="left: 10%; animation-duration: 12s; animation-delay: 0s;">♠️</div>
+            <div class="floater" style="left: 30%; animation-duration: 18s; animation-delay: 5s;">🎲</div>
+            <div class="floater" style="left: 60%; animation-duration: 14s; animation-delay: 2s;">♣️</div>
+            <div class="floater" style="left: 80%; animation-duration: 20s; animation-delay: 8s;">♥️</div>
+            <div class="floater" style="left: 20%; animation-duration: 16s; animation-delay: 10s;">♦️</div>
+            <div class="floater" style="left: 70%; animation-duration: 13s; animation-delay: 1s;">💰</div>
+        </div>
+
+        <!-- Profile Button (Centered Top) -->
+        <div class="w-full flex justify-center items-center z-10 mb-2 relative">
+            <button onclick="openProfile()" class="bg-surface p-2 rounded-full border border-surface-highlight hover:bg-surface-highlight transition-colors flex items-center gap-2 pr-4 shadow-lg active:scale-95 transition-transform">
+                <div id="home-avatar" class="w-8 h-8 rounded-full bg-slate-700 overflow-hidden text-xl flex items-center justify-center">👤</div>
+                <div class="flex flex-col items-start leading-none">
+                    <span id="home-username" class="text-xs font-bold text-text truncate max-w-[80px]">Player</span>
+                    <span class="text-[10px] text-accent uppercase font-bold">Profile</span>
+                </div>
+            </button>
+        </div>
+
+        <!-- Title -->
+        <div class="mb-8 relative w-full mt-4">
+            <div class="absolute inset-0 bg-accent/10 blur-3xl rounded-full"></div>
+            <h1 class="relative text-6xl font-black italic tracking-tighter mb-2 leading-none text-text drop-shadow-xl">HIGH<br><span class="text-accent">STAKES</span><br>TRUTH</h1>
+            <p class="text-text-dim text-xs tracking-[0.3em] uppercase font-bold mt-4">Confidence is Currency</p>
+        </div>
+
+        <!-- Arcade Mode (Primary) -->
+        <button onclick="startGame()" class="w-full py-5 bg-accent text-slate-900 font-black text-2xl uppercase rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg mb-3 relative overflow-hidden group flex items-center justify-center">
+            <span class="relative z-10">ARCADE MODE</span>
+            <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+        </button>
+
+        <!-- Daily Challenge (Secondary) -->
+        <button onclick="startDailyChallenge()" class="w-full py-5 bg-surface border-2 border-surface-highlight text-text font-black text-2xl uppercase rounded-xl hover:bg-surface-highlight active:scale-95 transition-all mb-4 relative overflow-hidden group shadow-lg flex items-center justify-center">
+            <span>DAILY CHALLENGE</span>
+        </button>
+
+        <!-- Footer Grid -->
+        <div class="grid grid-cols-2 gap-4 w-full mt-auto mb-4">
+            <button onclick="openShop()" class="py-4 bg-surface text-text-dim font-bold text-sm uppercase rounded-xl hover:bg-surface-highlight active:scale-95 transition-all border border-surface-highlight flex flex-col items-center justify-center gap-1">
+                <span>🛒 Shop</span>
+            </button>
+            <button onclick="openSettings()" class="py-4 bg-surface text-text-dim font-bold text-sm uppercase rounded-xl hover:bg-surface-highlight active:scale-95 transition-all border border-surface-highlight">
+                <span>⚙️ Settings</span>
+            </button>
+        </div>
+        
+    </section>
+
+    <!-- VIEW: GAME UI -->
+    <section id="view-game" class="view-section hidden flex flex-col p-4">
+        <div class="w-full flex justify-between items-start mt-2 mb-4 flex-shrink-0">
+            <button onclick="showStartScreen()" class="p-2 bg-surface rounded-full text-text-dim hover:text-text transition-colors border border-surface-highlight">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <div class="flex flex-col items-center">
+                <div class="text-[10px] uppercase tracking-[0.2em] text-text-dim font-bold mb-1">Balance</div>
+                <span class="text-accent text-4xl font-mono font-black tracking-tighter drop-shadow-lg" id="balance-display">$1,000</span>
+            </div>
+            <div class="flex flex-col items-end">
+                 <div class="text-[10px] uppercase tracking-wider text-text-dim font-bold">Round</div>
+                 <span id="round-display" class="font-mono text-text font-bold text-sm bg-surface px-2 py-1 rounded border border-surface-highlight">1 / 10</span>
+            </div>
+        </div>
+
+        <div class="flex-1 w-full flex flex-col justify-center items-center gap-4 relative min-h-0">
+            <div id="feedback-area" class="h-12 w-full flex items-center justify-center pointer-events-none z-30 absolute top-0"></div>
+            <div id="fact-card" class="fact-card w-full p-6 md:p-8 rounded-2xl relative z-20 flex flex-col justify-center items-center text-center flex-1 max-h-[40vh] overflow-y-auto no-scrollbar">
+                <div class="text-xs font-bold text-text-dim uppercase tracking-widest mb-4 sticky top-0">True or False?</div>
+                <p id="fact-text" class="text-xl md:text-2xl font-bold leading-snug text-text select-none">Loading...</p>
+            </div>
+            <div id="wager-controls" class="w-full bg-surface/80 rounded-xl p-4 border border-surface-highlight backdrop-blur-md transition-all duration-300 flex-shrink-0">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-xs font-bold uppercase text-text-dim">Wager</span>
+                    <span id="wager-display" class="font-mono text-2xl font-bold text-text">$500</span>
+                </div>
+                <input type="range" id="wager-slider" min="10" max="1000" value="500" step="10" class="mb-4 block">
+                <div class="flex justify-between gap-2">
+                    <button onclick="setWagerPercent(0.25)" class="flex-1 py-3 text-xs font-bold bg-surface-highlight active:bg-surface text-text-dim rounded-lg uppercase transition-colors">25%</button>
+                    <button onclick="setWagerPercent(0.50)" class="flex-1 py-3 text-xs font-bold bg-surface-highlight active:bg-surface text-text-dim rounded-lg uppercase transition-colors">50%</button>
+                    <button onclick="setWagerPercent(1.0)" class="flex-1 py-3 text-xs font-bold bg-accent active:bg-accent-hover text-surface font-black rounded-lg uppercase transition-colors shadow-lg">All In</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full grid grid-cols-2 gap-4 mt-4 z-20 h-24 mb-2 flex-shrink-0">
+            <button id="btn-false" class="h-full rounded-2xl bg-slate-200 text-slate-900 border-b-8 border-slate-300 font-black text-2xl uppercase shadow-lg flex flex-col items-center justify-center active:border-b-0 active:translate-y-2 active:bg-slate-300 transition-all"><span>False</span><span class="text-[10px] opacity-60 tracking-wider font-bold mt-1">NO WAY</span></button>
+            <button id="btn-true" class="h-full rounded-2xl bg-white text-slate-900 border-b-8 border-slate-300 font-black text-2xl uppercase shadow-lg flex flex-col items-center justify-center active:border-b-0 active:translate-y-2 active:bg-slate-100 transition-all"><span>True</span><span class="text-[10px] opacity-60 tracking-wider font-bold mt-1">BANK IT</span></button>
+            <button id="next-btn" class="hidden col-span-2 h-full rounded-2xl bg-blue-600 text-white border-b-8 border-blue-800 font-black text-2xl uppercase shadow-lg flex items-center justify-center gap-3 active:border-b-0 active:translate-y-2 transition-all">Next Hand <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg></button>
+        </div>
+    </section>
+
+    <!-- VIEW: GAME OVER (Condensed) -->
+    <section id="view-gameover" class="view-section hidden items-center justify-center p-6 z-50">
+        <h1 class="text-5xl md:text-6xl font-black text-text mb-2 tracking-tighter text-red-500 transform -rotate-3 drop-shadow-lg">BUSTED</h1>
+        <p class="text-text-dim mb-6 font-mono">The house always wins.</p>
+        <div class="bg-surface p-5 rounded-2xl border border-surface-highlight w-full mb-5 shadow-2xl">
+            <div class="text-[10px] uppercase text-text-dim font-bold mb-1 tracking-widest">Rounds Survived</div>
+            <div class="text-3xl font-mono text-text mb-3" id="rounds-score-display">0 / 10</div>
+            <div class="text-[10px] uppercase text-text-dim font-bold mb-1 tracking-widest">Balance Lost</div>
+            <div class="text-lg font-mono text-red-400">$0</div>
+        </div>
+        <button onclick="shareResult(false)" class="w-full py-3 bg-surface-highlight text-text font-bold text-base uppercase rounded-xl hover:bg-surface active:scale-95 transition-all mb-3 flex items-center justify-center gap-2">Share Shame</button>
+        <button onclick="restartGame()" class="w-full py-3 bg-accent text-slate-900 font-black text-lg uppercase rounded-xl hover:scale-105 active:scale-95 transition-all mb-3 shadow-lg">Try Again</button>
+        <button onclick="showStartScreen()" class="w-full py-3 bg-surface text-text-dim font-bold text-base uppercase rounded-xl active:scale-95 transition-all border border-surface-highlight">Main Menu</button>
+    </section>
+
+    <!-- VIEW: VICTORY (Condensed) -->
+    <section id="view-victory" class="view-section hidden items-center justify-center p-6 z-50">
+        <div class="text-accent text-5xl mb-2 animate-bounce">🏆</div>
+        <h1 class="text-5xl font-black text-text mb-2 tracking-tighter text-center leading-none">MISSION<br>COMPLETE</h1>
+        <p class="text-green-400 mb-6 font-mono font-bold tracking-widest uppercase">Survived</p>
+        <div class="bg-surface p-5 rounded-2xl border-2 border-accent w-full mb-5 shadow-2xl">
+            <div class="text-[10px] uppercase text-text-dim font-bold mb-1 tracking-widest">Final Payout</div>
+            <div class="text-4xl font-mono text-accent" id="victory-score-display">$0</div>
+        </div>
+        <button onclick="shareResult(true)" class="w-full py-3 bg-surface-highlight text-text font-bold text-base uppercase rounded-xl hover:bg-surface active:scale-95 transition-all mb-3 flex items-center justify-center gap-2">Share Score</button>
+        <button onclick="restartGame()" class="w-full py-3 bg-white text-slate-900 font-black text-lg uppercase rounded-xl hover:scale-105 active:scale-95 transition-all mb-3 shadow-lg">Play Again</button>
+        <button onclick="showStartScreen()" class="w-full py-3 bg-surface text-text-dim font-bold text-base uppercase rounded-xl active:scale-95 transition-all border border-surface-highlight">Main Menu</button>
+    </section>
+
+    <!-- VIEW: PROFILE -->
+    <section id="view-profile" class="view-section hidden p-6 z-50 overflow-y-auto bg-page">
+        <div class="flex items-center justify-between mb-8">
+            <h2 class="text-3xl font-black text-text uppercase italic tracking-tighter">Profile</h2>
+            <button onclick="closeProfile()" class="text-text-dim hover:text-text font-bold">CLOSE</button>
+        </div>
+        <div class="mb-8">
+            <div class="text-xs font-bold uppercase text-text-dim mb-2">Identity</div>
+            <input type="text" id="profile-name-input" maxlength="12" placeholder="Enter Name" class="w-full bg-surface border border-surface-highlight rounded-xl p-4 text-text font-bold mb-4 focus:outline-none focus:border-accent" oninput="saveProfile()">
+            <div class="grid grid-cols-4 gap-4">
+                <button onclick="selectAvatar('👤')" class="avatar-opt w-14 h-14 rounded-full bg-surface border-2 border-surface-highlight text-2xl flex items-center justify-center hover:bg-surface-highlight transition-all">👤</button>
+                <button onclick="selectAvatar('🎲')" class="avatar-opt w-14 h-14 rounded-full bg-surface border-2 border-surface-highlight text-2xl flex items-center justify-center hover:bg-surface-highlight transition-all">🎲</button>
+                <button onclick="selectAvatar('🦁')" class="avatar-opt w-14 h-14 rounded-full bg-surface border-2 border-surface-highlight text-2xl flex items-center justify-center hover:bg-surface-highlight transition-all">🦁</button>
+                <button onclick="selectAvatar('🤖')" class="avatar-opt w-14 h-14 rounded-full bg-surface border-2 border-surface-highlight text-2xl flex items-center justify-center hover:bg-surface-highlight transition-all">🤖</button>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <div class="bg-surface p-4 rounded-xl border border-surface-highlight">
+                <div class="text-[10px] font-bold uppercase text-text-dim mb-1">Streak</div>
+                <div id="profile-streak" class="text-2xl font-mono font-black text-accent">0</div>
+            </div>
+            <div class="bg-surface p-4 rounded-xl border border-surface-highlight">
+                <div class="text-[10px] font-bold uppercase text-text-dim mb-1">Lifetime</div>
+                <div id="profile-lifetime" class="text-xl font-mono font-black text-green-400">$0</div>
+            </div>
+        </div>
+        <div class="mb-8">
+            <div class="text-xs font-bold uppercase text-text-dim mb-2">Interface Theme</div>
+            <div class="grid grid-cols-1 gap-3">
+                <button onclick="selectTheme('midnight')" class="theme-opt w-full p-4 rounded-xl border-2 border-slate-700 bg-slate-900 text-white flex items-center justify-between"><span class="font-bold">Midnight (Default)</span><div class="w-4 h-4 rounded-full bg-slate-800 border border-slate-600"></div></button>
+                <button onclick="selectTheme('casino')" class="theme-opt w-full p-4 rounded-xl border-2 border-emerald-800 bg-emerald-900 text-emerald-100 flex items-center justify-between"><span class="font-bold">High Roller</span><div class="w-4 h-4 rounded-full bg-emerald-800 border border-emerald-600"></div></button>
+                <button onclick="selectTheme('cyber')" class="theme-opt w-full p-4 rounded-xl border-2 border-zinc-800 bg-zinc-950 text-fuchsia-400 flex items-center justify-between"><span class="font-bold">Cyber City</span><div class="w-4 h-4 rounded-full bg-zinc-900 border border-zinc-700"></div></button>
+            </div>
+        </div>
+    </section>
+
+    <!-- VIEW: SHOP -->
+    <section id="view-shop" class="view-section hidden p-6 z-50 bg-page overflow-y-auto">
+        <div class="flex items-center justify-between mb-8">
+            <h2 class="text-3xl font-black text-text uppercase italic tracking-tighter">Black Market</h2>
+            <button onclick="closeShop()" class="text-text-dim hover:text-text font-bold">CLOSE</button>
+        </div>
+        <div class="mb-8 p-4 bg-surface rounded-xl border border-surface-highlight flex justify-between items-center">
+            <span class="text-xs font-bold uppercase text-text-dim">Wealth</span>
+            <span id="shop-balance" class="font-mono text-accent text-xl font-bold">$0</span>
+        </div>
+        <div class="space-y-4">
+            <div class="bg-surface/50 p-4 rounded-xl border border-surface-highlight flex justify-between items-center group hover:bg-surface transition-all">
+                <div><div class="font-bold text-text mb-1">Gold Card Skin</div><div class="text-xs text-text-dim">Pure luxury.</div></div>
+                <button id="buy-skin-gold" onclick="buyItem('skin-gold', 50000)" class="px-4 py-2 bg-surface-highlight text-text font-bold text-xs rounded uppercase hover:bg-surface disabled:opacity-50 transition-colors">$50,000</button>
+            </div>
+            <div class="bg-surface/50 p-4 rounded-xl border border-surface-highlight flex justify-between items-center group hover:bg-surface transition-all">
+                <div><div class="font-bold text-text mb-1">Cyberpunk Skin</div><div class="text-xs text-text-dim">Neon grid aesthetics.</div></div>
+                <button id="buy-skin-cyber" onclick="buyItem('skin-cyber', 75000)" class="px-4 py-2 bg-surface-highlight text-text font-bold text-xs rounded uppercase hover:bg-surface disabled:opacity-50 transition-colors">$75,000</button>
+            </div>
+            <div class="bg-surface/50 p-4 rounded-xl border border-surface-highlight flex justify-between items-center group hover:bg-surface transition-all">
+                <div><div class="font-bold text-text mb-1">Blueprint Skin</div><div class="text-xs text-text-dim">Architectural design.</div></div>
+                <button id="buy-skin-blueprint" onclick="buyItem('skin-blueprint', 25000)" class="px-4 py-2 bg-surface-highlight text-text font-bold text-xs rounded uppercase hover:bg-surface disabled:opacity-50 transition-colors">$25,000</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- VIEW: SETTINGS -->
+    <section id="view-settings" class="view-section hidden items-center justify-center p-6 modal-backdrop">
+        <div class="w-full max-w-sm bg-surface rounded-2xl p-6 border border-surface-highlight shadow-2xl">
+            <h2 class="text-2xl font-black text-text mb-6 uppercase tracking-tight">Settings</h2>
+            <div class="flex items-center justify-between mb-6 p-4 bg-surface-highlight/20 rounded-xl">
+                <span class="font-bold text-text-dim">Sound Effects</span>
+                <button id="toggle-sound" class="w-14 h-8 bg-surface-highlight rounded-full relative transition-colors duration-200">
+                    <div id="sound-knob" class="w-6 h-6 bg-text rounded-full absolute top-1 left-1 transition-all duration-200"></div>
+                </button>
+            </div>
+            <button onclick="openHowToPlay()" class="w-full py-4 bg-surface-highlight text-text font-bold rounded-xl mb-4 hover:bg-surface transition-colors flex items-center justify-center gap-2">How To Play</button>
+            <button onclick="closeSettings()" class="w-full py-4 bg-page text-text-dim font-bold rounded-xl border border-surface-highlight">Close</button>
+        </div>
+    </section>
+
+    <!-- VIEW: HOW TO PLAY -->
+    <section id="view-howto" class="view-section hidden items-center justify-center p-6 modal-backdrop">
+        <div class="w-full max-w-sm bg-surface rounded-2xl p-6 border border-surface-highlight shadow-2xl">
+            <h2 class="text-2xl font-black text-text mb-4 uppercase">How To Play</h2>
+            <div class="space-y-4 text-sm text-text-dim leading-relaxed mb-6">
+                <p><strong class="text-accent">1. The Goal:</strong> Survive the rounds (10 for Arcade, 5 for Daily).</p>
+                <p><strong class="text-accent">2. The Wager:</strong> Bet your confidence. Correct answers pay 1:1. Wrong answers burn your cash.</p>
+                <p><strong class="text-accent">3. The Risk:</strong> If your balance hits $0, you lose instantly.</p>
+            </div>
+            <button onclick="closeHowToPlay()" class="w-full py-4 bg-accent text-slate-900 font-bold uppercase rounded-xl">Got it</button>
+        </div>
+    </section>
+
+    <script>
+        // --- DATA & STATE ---
+        const rawFacts = [
+            { text: "Bananas are curved because they grow towards the sun.", isTrue: true },
+            { text: "The Great Wall of China is the only man-made object visible from space.", isTrue: false },
+            { text: "A duck's quack doesn't echo.", isTrue: false },
+            { text: "Water boils at 100°C at sea level.", isTrue: true },
+            { text: "Goldfish have a 3-second memory.", isTrue: false },
+            { text: "Octopuses have three hearts.", isTrue: true },
+            { text: "Humans share 50% of their DNA with bananas.", isTrue: true },
+            { text: "Napoleon was short.", isTrue: false },
+            { text: "Sharks are older than trees.", isTrue: true },
+            { text: "The unicorn is the national animal of Scotland.", isTrue: true },
+            { text: "Vikings wore horned helmets.", isTrue: false },
+            { text: "Honey never spoils.", isTrue: true },
+            { text: "Peanuts are nuts.", isTrue: false }, 
+            { text: "Venus spins clockwise.", isTrue: true },
+            { text: "Strawberries are berries.", isTrue: false },
+            { text: "A day on Venus is longer than a year on Venus.", isTrue: true },
+            { text: "It is impossible to hum while holding your nose.", isTrue: true },
+            { text: "Blue whales eat half a million calories in one mouthful.", isTrue: true },
+            { text: "Oxford University is older than the Aztec Empire.", isTrue: true },
+            { text: "France shares its longest border with Spain.", isTrue: false },
+            { text: "Wombat poop is cube-shaped.", isTrue: true },
+            { text: "The Eiffel Tower can grow 15 cm in summer.", isTrue: true },
+            { text: "An ostrich's eye is bigger than its brain.", isTrue: true },
+            { text: "Polar bear skin is black.", isTrue: true },
+            { text: "Tigers have striped skin, not just striped fur.", isTrue: true },
+            { text: "The shortest war in history lasted 38 minutes.", isTrue: true },
+            { text: "The Great Wall of China is a single continuous wall.", isTrue: false },
+            { text: "Bulls are angered by the color red.", isTrue: false },
+            { text: "Chameleons change color mainly to blend in.", isTrue: false },
+            { text: "Bats are blind.", isTrue: false },
+            { text: "A snail can sleep for three years.", isTrue: true },
+            { text: "Sloths can hold their breath longer than dolphins.", isTrue: true },
+            { text: "A blue whale's heart is the size of a small car.", isTrue: true },
+            { text: "Elephants are the only mammals that can't jump.", isTrue: true },
+            { text: "A rhinoceros' horn is made of hair.", isTrue: true },
+            { text: "Cows have best friends.", isTrue: true },
+            { text: "A group of flamingos is called a 'flamboyance'.", isTrue: true },
+            { text: "The heart of a shrimp is located in its head.", isTrue: true },
+            { text: "A single cloud can weigh more than 1 million pounds.", isTrue: true },
+            { text: "Hot water freezes faster than cold water.", isTrue: true },
+            { text: "Sound travels faster in water than in air.", isTrue: true },
+            { text: "Light travels in a straight line.", isTrue: true },
+            { text: "The sun is white, not yellow.", isTrue: true },
+            { text: "Lightning never strikes the same place twice.", isTrue: false },
+            { text: "The dark side of the moon never sees sunlight.", isTrue: false },
+            { text: "Mount Everest is the tallest mountain from base to summit.", isTrue: false },
+            { text: "Sahara is the largest desert in the world.", isTrue: false },
+            { text: "Nemo is a clownfish.", isTrue: true },
+            { text: "SpongeBob SquarePants lives in a pineapple.", isTrue: true },
+            { text: "Mickey Mouse was the first animated character to get a star on the Hollywood Walk of Fame.", isTrue: true },
+            { text: "The first Toy Story movie was released in 1995.", isTrue: true },
+            { text: "Mario was originally a carpenter, not a plumber.", isTrue: true },
+            { text: "Pac-Man was inspired by a pizza with a missing slice.", isTrue: true },
+            { text: "Tetris was created by an American programmer.", isTrue: false },
+            { text: "The PlayStation 2 is the best-selling console of all time.", isTrue: true },
+            { text: "Sonic the Hedgehog's real name is Ogilvie Maurice Hedgehog.", isTrue: true },
+            { text: "Pikachu is a mouse pokemon.", isTrue: true },
+            { text: "The moon has its own time zone.", isTrue: false },
+            { text: "There are more stars in the universe than grains of sand on Earth.", isTrue: true },
+            { text: "A year on Mercury is just 88 Earth days.", isTrue: true },
+            { text: "Jupiter is the largest planet in our solar system.", isTrue: true },
+            { text: "Saturn is the only planet with rings.", isTrue: false },
+            { text: "Pluto is still considered a planet.", isTrue: false },
+            { text: "The sun is a star.", isTrue: true },
+            { text: "The Milky Way is a spiral galaxy.", isTrue: true },
+            { text: "Black holes are empty space.", isTrue: false },
+            { text: "Astronauts grow taller in space.", isTrue: true },
+            { text: "Space is completely silent.", isTrue: true },
+            { text: "The hottest planet in the solar system is Mercury.", isTrue: false },
+            { text: "Brazil is the only country in the Americas to have the official language of Portuguese.", isTrue: true },
+            { text: "Russia has the most time zones of any country.", isTrue: false },
+            { text: "Australia is wider than the moon.", isTrue: true },
+            { text: "The Amazon River is the longest river in the world.", isTrue: false },
+            { text: "Antarctica is the driest continent on Earth.", isTrue: true },
+            { text: "There are more pyramids in Sudan than in Egypt.", isTrue: true },
+            { text: "Canada has the most lakes of any country.", isTrue: true },
+            { text: "The Statue of Liberty was a gift from Spain.", isTrue: false },
+            { text: "New York City is the capital of New York.", isTrue: false },
+            { text: "The currency of Japan is the Yuan.", isTrue: false },
+            { text: "Monaco is the smallest country in the world.", isTrue: false },
+            { text: "A standard golf course has 18 holes.", isTrue: true },
+            { text: "The Olympic Games are held every 4 years.", isTrue: true },
+            { text: "Soccer is the most popular sport in the world.", isTrue: true },
+            { text: "A marathon is 26.2 miles long.", isTrue: true },
+            { text: "Michael Jordan played for the Chicago Bulls.", isTrue: true },
+            { text: "Tennis originated in France.", isTrue: true },
+            { text: "Baseball is known as America's pastime.", isTrue: true },
+            { text: "The Super Bowl is the championship game of the NBA.", isTrue: false },
+            { text: "Golf balls were once made of leather and feathers.", isTrue: true },
+            { text: "The first Olympic Games were held in Athens, Greece.", isTrue: true },
+            { text: "A bowling game consists of 10 frames.", isTrue: true },
+            { text: "The human body has 206 bones.", isTrue: true },
+            { text: "The skin is the largest organ in the human body.", isTrue: true },
+            { text: "The heart has 4 chambers.", isTrue: true },
+            { text: "The brain is the largest organ in the human body.", isTrue: false },
+            { text: "Blood is blue inside the body.", isTrue: false },
+            { text: "Humans use only 10% of their brains.", isTrue: false },
+            { text: "Hair and nails continue to grow after death.", isTrue: false },
+            { text: "The tongue is the strongest muscle in the human body.", isTrue: false },
+            { text: "A human sneeze can travel up to 100 mph.", isTrue: true },
+            { text: "The liver is the only organ that can regenerate itself.", isTrue: true },
+            { text: "Beethoven was deaf when he composed his 9th Symphony.", isTrue: true },
+            { text: "Leonardo da Vinci painted the Mona Lisa.", isTrue: true },
+            { text: "Vincent van Gogh had only one ear.", isTrue: false },
+            { text: "Shakespeare wrote Romeo and Juliet.", isTrue: true },
+            { text: "Albert Einstein failed math in school.", isTrue: false },
+            { text: "Cleopatra was Egyptian.", isTrue: false },
+            { text: "Christopher Columbus discovered America.", isTrue: false },
+            { text: "The Titanic sank in 1912.", isTrue: true },
+            { text: "The first man on the moon was Neil Armstrong.", isTrue: true },
+            { text: "The Berlin Wall fell in 1989.", isTrue: true },
+            { text: "World War II ended in 1945.", isTrue: true },
+            { text: "The Declaration of Independence was signed in 1776.", isTrue: true },
+            { text: "Pineapples take two years to grow.", isTrue: true },
+            { text: "A bolt of lightning is five times hotter than the sun.", isTrue: true },
+            { text: "Cows sleep standing up.", isTrue: true },
+            { text: "Cows can walk down stairs but not up them.", isTrue: false },
+            { text: "Butterflies taste with their feet.", isTrue: true },
+            { text: "Koalas sleep up to 22 hours a day.", isTrue: true },
+            { text: "Cotton candy was invented by a dentist.", isTrue: true },
+            { text: "The Great Barrier Reef is the largest living structure on Earth.", isTrue: true },
+            { text: "There are no muscles in your fingers.", isTrue: true },
+            { text: "The Empire State Building has its own zip code.", isTrue: true },
+            { text: "High heels were originally worn by men.", isTrue: true },
+            { text: "Ketchup was once sold as medicine.", isTrue: true },
+            { text: "The shortest commercial flight in the world lasts 57 seconds.", isTrue: true },
+            { text: "Japan has square watermelons.", isTrue: true },
+            { text: "Cheetahs can roar like lions.", isTrue: false },
+            { text: "A jiffy is an actual unit of time.", isTrue: true },
+            { text: "Dragonflies have six legs but cannot walk.", isTrue: true },
+            { text: "All Froot Loops have the same flavor.", isTrue: true },
+            { text: "Superman was originally a villain.", isTrue: true },
+            { text: "Real diamonds don't show up on X-rays.", isTrue: true },
+            { text: "Pigs can look up into the sky.", isTrue: false },
+            { text: "Sharks are immune to cancer.", isTrue: false },
+            { text: "Fortune cookies were invented in China.", isTrue: false },
+            { text: "Bulls hate red.", isTrue: false },
+            { text: "The Great Wall of China is visible from the moon.", isTrue: false },
+            { text: "Bats are birds.", isTrue: false },
+            { text: "Peanuts grow on trees.", isTrue: false },
+            { text: "The forbidden fruit in the Bible is explicitly an apple.", isTrue: false },
+            { text: "George Washington had wooden teeth.", isTrue: false },
+            { text: "Napoleon was below average height for his time.", isTrue: false },
+            { text: "Vikings drank from the skulls of their enemies.", isTrue: false },
+            { text: "Salty water boils faster.", isTrue: true },
+            { text: "Glass is a slow-moving liquid.", isTrue: false },
+            { text: "Alcohol kills brain cells.", isTrue: false },
+            { text: "Shaving makes hair grow back thicker.", isTrue: false },
+            { text: "Touching a toad gives you warts.", isTrue: false },
+            { text: "You swallow 8 spiders a year in your sleep.", isTrue: false },
+            { text: "Goldfish have a 3 second memory.", isTrue: false },
+            { text: "De-oxygenated blood is blue.", isTrue: false },
+            { text: "Sugar makes children hyperactive.", isTrue: false },
+            { text: "Cracking knuckles causes arthritis.", isTrue: false },
+            { text: "We only use 10% of our brains.", isTrue: false },
+            { text: "The color orange was named after the fruit.", isTrue: true },
+            { text: "A strawberry is not a berry.", isTrue: true },
+            { text: "Bananas are berries.", isTrue: true },
+            { text: "Avocados are vegetables.", isTrue: false },
+            { text: "Mushrooms are plants.", isTrue: false },
+            { text: "Tomatoes are vegetables.", isTrue: false },
+            { text: "Peppers are fruits.", isTrue: true },
+            { text: "Pumpkins are fruits.", isTrue: true },
+            { text: "Olives are fruits.", isTrue: true },
+            { text: "Cucumbers are fruits.", isTrue: true },
+            { text: "Eggplants are fruits.", isTrue: true },
+            { text: "Rhubarb is a fruit.", isTrue: false },
+            { text: "Corn is a grain.", isTrue: true },
+            { text: "Rice is a grain.", isTrue: true },
+            { text: "Quinoa is a grain.", isTrue: false },
+            { text: "Coffee beans are beans.", isTrue: false },
+            { text: "Tea comes from leaves.", isTrue: true },
+            { text: "White chocolate is chocolate.", isTrue: false },
+            { text: "Green gummy bears are strawberry flavored.", isTrue: true },
+            { text: "Honey is bee vomit.", isTrue: true },
+            { text: "Figs contain dead wasps.", isTrue: true },
+            { text: "Cashews come from a fruit.", isTrue: true },
+            { text: "Almonds are seeds.", isTrue: true },
+            { text: "Peanuts are legumes.", isTrue: true },
+            { text: "Coconuts are mammals.", isTrue: false },
+            { text: "A tomato has more genes than a human.", isTrue: true },
+            { text: "You share 60% of your DNA with bananas.", isTrue: true },
+            { text: "A cloud weighs around a million tonnes.", isTrue: false },
+            { text: "Rain contains vitamin B12.", isTrue: true },
+            { text: "Snow is actually white.", isTrue: false },
+            { text: "Fire casts a shadow.", isTrue: false },
+            { text: "Water is wet.", isTrue: true },
+            { text: "Air is empty space.", isTrue: false },
+            { text: "Sound cannot travel through a vacuum.", isTrue: true },
+            { text: "Light has mass.", isTrue: false },
+            { text: "Time passes faster at the top of a mountain.", isTrue: true },
+            { text: "The universe is expanding.", isTrue: true },
+            { text: "Atoms are mostly empty space.", isTrue: true },
+            { text: "Electrons orbit the nucleus like planets.", isTrue: false },
+            { text: "Solid glass is a crystal.", isTrue: false },
+            { text: "Diamond is the hardest metal.", isTrue: false },
+            { text: "Mercury is a liquid metal.", isTrue: true },
+            { text: "Bronze is an element.", isTrue: false },
+            { text: "Steel is an alloy.", isTrue: true },
+            { text: "Gold never rusts.", isTrue: true },
+            { text: "Silver tarnishes.", isTrue: true },
+            { text: "Copper turns green.", isTrue: true },
+            { text: "Iron is magnetic.", isTrue: true },
+            { text: "Aluminum is magnetic.", isTrue: false },
+            { text: "Lead is poisonous.", isTrue: true },
+            { text: "Helium is lighter than air.", isTrue: true },
+            { text: "Oxygen is flammable.", isTrue: false },
+            { text: "Hydrogen is the most common element in the universe.", isTrue: true },
+            { text: "Carbon is the basis of life.", isTrue: true },
+            { text: "Water expands when it freezes.", isTrue: true },
+            { text: "Oil and water mix.", isTrue: false },
+            { text: "Vinegar is an acid.", isTrue: true },
+            { text: "Soap is a base.", isTrue: true },
+            { text: "Batteries store electricity.", isTrue: false },
+            { text: "Wifi stands for Wireless Fidelity.", isTrue: false },
+            { text: "The internet and the web are the same thing.", isTrue: false },
+            { text: "Google was originally called Backrub.", isTrue: true },
+            { text: "Amazon started as a bookstore.", isTrue: true },
+            { text: "Apple was founded in a garage.", isTrue: true },
+            { text: "Facebook was founded at Harvard.", isTrue: true },
+            { text: "Twitter's bird is named Larry.", isTrue: true },
+            { text: "The first computer mouse was made of wood.", isTrue: true },
+            { text: "The QWERTY keyboard was designed to slow typing.", isTrue: true },
+            { text: "Kilobyte is bigger than a Megabyte.", isTrue: false },
+            { text: "CPU stands for Central Processing Unit.", isTrue: true },
+            { text: "RAM stands for Random Access Memory.", isTrue: true },
+            { text: "HTML is a programming language.", isTrue: false },
+            { text: "Python is a snake.", isTrue: true },
+            { text: "Java and JavaScript are the same.", isTrue: false },
+            { text: "Slugs have four noses.", isTrue: true },
+            { text: "Hippos sweat pink sunscreen.", isTrue: true },
+            { text: "Flamingos can only eat with their heads upside down.", isTrue: true },
+            { text: "A cockroach can live weeks without its head.", isTrue: true },
+            { text: "Starfish have no brains.", isTrue: true },
+            { text: "Jellyfish are 95% water.", isTrue: true },
+            { text: "Polar bears are left-handed.", isTrue: false },
+            { text: "Bats are the only mammals that can fly.", isTrue: true },
+            { text: "An octopus has blue blood.", isTrue: true },
+            { text: "Oysters can change gender.", isTrue: true },
+            { text: "Turtles can breathe through their butts.", isTrue: true },
+            { text: "A housefly hums in the key of F.", isTrue: true },
+            { text: "Mosquitoes are attracted to blue.", isTrue: true },
+            { text: "Ants never sleep.", isTrue: false },
+            { text: "Bees can recognize human faces.", isTrue: true },
+            { text: "Cats can't taste sweetness.", isTrue: true },
+            { text: "Dogs can smell cancer.", isTrue: true },
+            { text: "Horses can't vomit.", isTrue: true },
+            { text: "Rats laugh when tickled.", isTrue: true },
+            { text: "Squirrels plant thousands of trees by forgetting nuts.", isTrue: true },
+            { text: "A group of crows is called a murder.", isTrue: true },
+            { text: "A group of owls is called a parliament.", isTrue: true },
+            { text: "A group of frogs is called an army.", isTrue: true },
+            { text: "Crocodiles can stick their tongue out.", isTrue: false },
+            { text: "Snakes can hear.", isTrue: true },
+            { text: "Chameleons change color to camouflage.", isTrue: false },
+            { text: "Birds are dinosaurs.", isTrue: true },
+            { text: "T-Rex had feathers.", isTrue: true },
+            { text: "Velociraptors were the size of turkeys.", isTrue: true },
+            { text: "Pterodactyls are dinosaurs.", isTrue: false },
+            { text: "Mammoths were around when pyramids were built.", isTrue: true },
+            { text: "Cleopatra lived closer to the moon landing than the pyramids.", isTrue: true },
+            { text: "The chainsaw was invented for childbirth.", isTrue: true },
+            { text: "Heroin was once sold as cough medicine.", isTrue: true },
+            { text: "Cornflakes were invented to stop masturbation.", isTrue: true },
+            { text: "The electric chair was invented by a dentist.", isTrue: true },
+            { text: "Nintendo was founded in 1889.", isTrue: true },
+            { text: "Harvard is older than calculus.", isTrue: true },
+            { text: "Saudi Arabia imports camels from Australia.", isTrue: true },
+            { text: "France used the guillotine when Star Wars came out.", isTrue: true },
+            { text: "Betty White is older than sliced bread.", isTrue: true },
+            { text: "Alaska is the westernmost US state.", isTrue: true },
+            { text: "Russia and the US are 4km apart.", isTrue: true },
+            { text: "Africa is a country.", isTrue: false },
+            { text: "Mount Everest is growing.", isTrue: true },
+            { text: "Hawaii is moving towards Japan.", isTrue: true },
+            { text: "The Dead Sea is completely dead.", isTrue: false },
+            { text: "Vatican City is the smallest country.", isTrue: true },
+            { text: "Nauru is the only country without a capital.", isTrue: true },
+            { text: "Canada consumes the most mac and cheese.", isTrue: true },
+            { text: "Australia has a pink lake.", isTrue: true },
+            { text: "There are no rivers in Saudi Arabia.", isTrue: true },
+            { text: "McDonald's is in every country.", isTrue: false },
+            { text: "Coca-Cola was originally green.", isTrue: false },
+            { text: "Honey is the only food that doesn't spoil.", isTrue: false },
+            { text: "White chocolate is healthy.", isTrue: false },
+            { text: "Carrots give you night vision.", isTrue: false },
+            { text: "Gum stays in your stomach for 7 years.", isTrue: false },
+            { text: "Coffee dehydrates you.", isTrue: false },
+            { text: "Vitamin C cures colds.", isTrue: false },
+            { text: "Microwaves cause cancer.", isTrue: false },
+            { text: "Vaccines cause autism.", isTrue: false },
+            { text: "The earth is flat.", isTrue: false },
+            { text: "Evolution is just a theory.", isTrue: true },
+            { text: "Gravity is a law.", isTrue: true },
+            { text: "Light travels faster than sound.", isTrue: true },
+            { text: "The speed of light is infinite.", isTrue: false },
+            { text: "Black holes suck everything in.", isTrue: false },
+            { text: "The sun is burning.", isTrue: false },
+            { text: "Space is cold.", isTrue: false },
+            { text: "There is no sound in space.", isTrue: true },
+            { text: "The moon has a dark side.", isTrue: false },
+            { text: "Mars is red because of rust.", isTrue: true },
+            { text: "Jupiter spins the fastest.", isTrue: true },
+            { text: "Venus is the hottest planet.", isTrue: true },
+            { text: "A cat has 32 muscles in each ear.", isTrue: true },
+            { text: "Your left lung is smaller than your right lung.", isTrue: true },
+            { text: "A dime has 118 ridges around the edge.", isTrue: true },
+            { text: "Most people fall asleep in seven minutes.", isTrue: true },
+            { text: "Walt Disney was afraid of mice.", isTrue: true },
+            { text: "The King of Hearts is the only king without a mustache.", isTrue: true },
+            { text: "Pearl Harbor is in the Atlantic Ocean.", isTrue: false },
+            { text: "A jiffy is an actual unit of time.", isTrue: true },
+            { text: "Dragonflies have six legs but cannot walk.", isTrue: true },
+            { text: "The average golf ball has 336 dimples.", isTrue: true },
+            { text: "Montpelier is the capital of Vermont.", isTrue: true },
+            { text: "The Great Fire of London happened in 1966.", isTrue: false },
+            { text: "A acute angle is less than 90 degrees.", isTrue: true },
+            { text: "Complementary angles add up to 180 degrees.", isTrue: false },
+            { text: "The square root of 81 is 9.", isTrue: true },
+            { text: "M&M stands for Mars and Murrie.", isTrue: true },
+            { text: "Cheetahs can retract their claws.", isTrue: false },
+            { text: "The Unicorn is the national animal of Scotland.", isTrue: true },
+            { text: "Some cats are allergic to humans.", isTrue: true },
+            { text: "You can sneeze in your sleep.", isTrue: false },
+            { text: "The hypermart Walmart was founded in 1950.", isTrue: false },
+            { text: "Humans lose an average of 75 strands of hair a month.", isTrue: false },
+            { text: "Infants are born with approximately 300 bones.", isTrue: true },
+            { text: "Human thigh bones are stronger than concrete.", isTrue: true },
+            { text: "An octopus has three hearts.", isTrue: true },
+            { text: "Spiders are insects.", isTrue: false },
+            { text: "Sand is melted to make glass.", isTrue: true },
+            { text: "Light travels in straight lines.", isTrue: true },
+            { text: "Sound travels faster than light.", isTrue: false },
+            { text: "Frogs drink water through their skin.", isTrue: true },
+            { text: "Owls can turn their heads 360 degrees.", isTrue: false },
+            { text: "Dolphins sleep with one eye open.", isTrue: true },
+            { text: "Goldfish have stomachs.", isTrue: false },
+            { text: "Your nose and ears never stop growing.", isTrue: true },
+            { text: "Fingernails grow faster than toenails.", isTrue: true },
+            { text: "Taste buds have a lifespan of about 10 days.", isTrue: true },
+            { text: "The liver is the largest internal organ.", isTrue: true },
+            { text: "The small intestine is longer than the large intestine.", isTrue: true },
+            { text: "Humans share 50% of their DNA with bananas.", isTrue: true },
+            { text: "Every odd number has the letter 'e' in it.", isTrue: true },
+            { text: "-40 degrees Celsius is the same as -40 degrees Fahrenheit.", isTrue: true },
+            { text: "A standard deck of cards has 52 cards.", isTrue: true },
+            { text: "The sum of angles in a triangle is 180 degrees.", isTrue: true },
+            { text: "Prime numbers are divisible only by 1 and themselves.", isTrue: true },
+            { text: "Zero is a positive number.", isTrue: false },
+            { text: "Water covers 50% of the Earth.", isTrue: false },
+            { text: "The Nile is the longest river in the world.", isTrue: true },
+            { text: "The Pacific Ocean is the largest ocean.", isTrue: true },
+            { text: "Mount Everest is located in Europe.", isTrue: false },
+            { text: "The desert is always hot.", isTrue: false },
+            { text: "Diamonds are made of compressed coal.", isTrue: false },
+            { text: "The center of the Earth is solid.", isTrue: true },
+            { text: "Lightning is hotter than the sun's surface.", isTrue: true },
+            { text: "Sound travels faster in water than air.", isTrue: true },
+            { text: "Batteries produce energy.", isTrue: false },
+            { text: "Rust is caused by iron reacting with oxygen.", isTrue: true },
+            { text: "Venice is in Italy.", isTrue: true },
+            { text: "Madrid is the capital of Spain.", isTrue: true },
+            { text: "Toronto is the capital of Canada.", isTrue: false },
+            { text: "There are 7 continents.", isTrue: true },
+            { text: "Penguins live at the North Pole.", isTrue: false },
+            { text: "The Statue of Liberty is in Washington D.C.", isTrue: false },
+            { text: "The Great Barrier Reef is in Australia.", isTrue: true },
+            { text: "The Taj Mahal is in India.", isTrue: true },
+            { text: "Shakespeare wrote Hamlet.", isTrue: true },
+            { text: "Harry Potter was written by J.R.R. Tolkien.", isTrue: false },
+            { text: "Sherlock Holmes is a real person.", isTrue: false },
+            { text: "Simba is a lion.", isTrue: true },
+            { text: "Superman's weakness is Kryptonite.", isTrue: true },
+            { text: "Batman lives in Gotham City.", isTrue: true },
+            { text: "Spiderman was bitten by a radioactive spider.", isTrue: true },
+            { text: "Buzz Lightyear is a character in Toy Story.", isTrue: true },
+            { text: "Finding Nemo is about a fish.", isTrue: true },
+            { text: "Shrek is an ogre.", isTrue: true },
+            { text: "Frodo is a hobbit.", isTrue: true },
+            { text: "Darth Vader is Luke's father.", isTrue: true },
+            { text: "Titanic was directed by Steven Spielberg.", isTrue: false },
+            { text: "The Oscars are awards for music.", isTrue: false },
+            { text: "The Beatles were a British band.", isTrue: true },
+            { text: "Elvis Presley was known as the King of Rock and Roll.", isTrue: true },
+            { text: "Michael Jackson invented the Moonwalk.", isTrue: false },
+            { text: "Piano has 88 keys.", isTrue: true },
+            { text: "Violin has 6 strings.", isTrue: false },
+            { text: "Beethoven was blind.", isTrue: false },
+            { text: "Mozart was born in Austria.", isTrue: true },
+            { text: "Jazz originated in New Orleans.", isTrue: true },
+            { text: "Sushi comes from China.", isTrue: false },
+            { text: "Pizza originated in Italy.", isTrue: true },
+            { text: "French Fries come from France.", isTrue: false },
+            { text: "Croissants are from Austria.", isTrue: true },
+            { text: "Tacos are Mexican.", isTrue: true },
+            { text: "Mars is the 4th planet from the sun.", isTrue: true },
+            { text: "The sun orbits the Earth.", isTrue: false },
+            { text: "Saturn has the most visible rings.", isTrue: true },
+            { text: "Neil Armstrong was the first person to walk on the moon.", isTrue: true },
+            { text: "Sputnik was the first satellite.", isTrue: true },
+            { text: "NASA stands for National Aeronautics and Space Administration.", isTrue: true },
+            { text: "The Milky Way is the only galaxy.", isTrue: false },
+            { text: "A light year is a measure of time.", isTrue: false },
+            { text: "Gravity is stronger on the moon than Earth.", isTrue: false },
+            { text: "The International Space Station orbits Earth.", isTrue: true }
+        ];
+
+        // --- GLOBAL STATE ---
+        let balance = 1000;
+        let currentWager = 500;
+        let currentFact = null;
+        let isRoundActive = true;
+        let deck = [];
+        let roundsPlayed = 0;
+        let maxRounds = 10;
+        let isDailyMode = false;
+        
+        let lifetimeEarnings = parseInt(localStorage.getItem('hst_lifetime')) || 0;
+        let inventory = JSON.parse(localStorage.getItem('hst_inventory')) || [];
+        let equippedSkin = localStorage.getItem('hst_equipped') || '';
+
+        // Profile State
+        let currentStreak = parseInt(localStorage.getItem('hst_streak')) || 0;
+        let lastPlayedDate = localStorage.getItem('hst_last_played') || '';
+        let playerName = localStorage.getItem('hst_name') || 'Player';
+        let playerAvatar = localStorage.getItem('hst_avatar') || '👤';
+        let currentTheme = localStorage.getItem('hst_theme') || 'midnight';
+
+        // --- DOM REFERENCES ---
+        const views = {
+            start: document.getElementById('view-start'),
+            game: document.getElementById('view-game'),
+            gameover: document.getElementById('view-gameover'),
+            victory: document.getElementById('view-victory'),
+            settings: document.getElementById('view-settings'),
+            howto: document.getElementById('view-howto'),
+            shop: document.getElementById('view-shop'),
+            profile: document.getElementById('view-profile')
+        };
+
+        const els = {
+            balance: document.getElementById('balance-display'),
+            round: document.getElementById('round-display'),
+            factText: document.getElementById('fact-text'),
+            wagerDisplay: document.getElementById('wager-display'),
+            wagerSlider: document.getElementById('wager-slider'),
+            wagerControls: document.getElementById('wager-controls'),
+            btnTrue: document.getElementById('btn-true'),
+            btnFalse: document.getElementById('btn-false'),
+            nextBtn: document.getElementById('next-btn'),
+            feedback: document.getElementById('feedback-area'),
+            card: document.getElementById('fact-card'),
+            roundsScore: document.getElementById('rounds-score-display'),
+            victoryScore: document.getElementById('victory-score-display'),
+            toggleSound: document.getElementById('toggle-sound'),
+            soundKnob: document.getElementById('sound-knob'),
+            shopBalance: document.getElementById('shop-balance'),
+            
+            // Profile Els
+            homeUsername: document.getElementById('home-username'),
+            homeAvatar: document.getElementById('home-avatar'),
+            profileNameInput: document.getElementById('profile-name-input'),
+            profileStreak: document.getElementById('profile-streak'),
+            profileLifetime: document.getElementById('profile-lifetime')
+        };
+
+        // --- INIT ---
+        applyTheme(currentTheme);
+        updateProfileUI();
+        if(equippedSkin) els.card.classList.add(equippedSkin);
+
+        // --- THEME ENGINE ---
+        function applyTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            currentTheme = theme;
+            localStorage.setItem('hst_theme', theme);
+            updateProfileUI(); // Updates selection rings
+        }
+
+        function selectTheme(theme) {
+            applyTheme(theme);
+        }
+
+        // --- PROFILE LOGIC ---
+        function openProfile() {
+            els.profileNameInput.value = playerName;
+            els.profileStreak.innerText = currentStreak;
+            els.profileLifetime.innerText = `$${lifetimeEarnings.toLocaleString()}`;
+            switchView('profile');
+        }
+
+        function closeProfile() {
+            switchView('start');
+        }
+
+        function saveProfile() {
+            playerName = els.profileNameInput.value || 'Player';
+            localStorage.setItem('hst_name', playerName);
+            updateProfileUI();
+        }
+
+        function selectAvatar(avatar) {
+            playerAvatar = avatar;
+            localStorage.setItem('hst_avatar', playerAvatar);
+            updateProfileUI();
+        }
+
+        function updateProfileUI() {
+            els.homeUsername.innerText = playerName;
+            els.homeAvatar.innerText = playerAvatar;
+            
+            // Highlight selected avatar
+            document.querySelectorAll('.avatar-opt').forEach(btn => {
+                if(btn.innerText === playerAvatar) btn.classList.add('selected-ring');
+                else btn.classList.remove('selected-ring');
+            });
+            
+            // Highlight selected theme
+            document.querySelectorAll('.theme-opt').forEach(btn => {
+                const themeName = btn.getAttribute('onclick').split("'")[1];
+                if(themeName === currentTheme) btn.classList.add('selected-ring');
+                else btn.classList.remove('selected-ring');
+            });
+        }
+
+        // --- VIEW NAVIGATION ---
+        function switchView(targetId) {
+            const target = views[targetId];
+            Object.values(views).forEach(v => {
+                if (v !== target) {
+                    v.classList.remove('view-active');
+                    if (!v.classList.contains('hidden')) {
+                        setTimeout(() => { v.classList.add('hidden'); }, 300);
+                    }
+                }
+            });
+            target.classList.remove('hidden');
+            requestAnimationFrame(() => { target.classList.add('view-active'); });
+        }
+
+        function showStartScreen() { 
+            updateProfileUI();
+            switchView('start'); 
+        }
+
+        // --- GAME MODES ---
+        function startGame() {
+            isDailyMode = false;
+            maxRounds = 10;
+            sfx.init(); sfx.click();
+            balance = 1000;
+            roundsPlayed = 0;
+            deck = [...rawFacts].sort(() => Math.random() - 0.5);
+            updateBalanceUI();
+            nextRound();
+            switchView('game');
+        }
+
+        function startDailyChallenge() {
+            isDailyMode = true;
+            maxRounds = 5;
+            sfx.init(); sfx.click();
+            balance = 1000;
+            roundsPlayed = 0;
+            const today = new Date().toISOString().slice(0, 10);
+            deck = getDailyDeck(today);
+            updateBalanceUI();
+            nextRound();
+            switchView('game');
+        }
+
+        function getDailyDeck(seedStr) {
+            let hash = 0;
+            for (let i = 0; i < seedStr.length; i++) {
+                hash = ((hash << 5) - hash) + seedStr.charCodeAt(i);
+                hash |= 0;
+            }
+            const dailyFacts = [];
+            let indices = [];
+            for(let i=0; i<5; i++) {
+                hash = (hash * 9301 + 49297) % 233280;
+                let rnd = Math.abs(hash);
+                let idx = rnd % rawFacts.length;
+                while(indices.includes(idx)) {
+                   idx = (idx + 1) % rawFacts.length;
+                }
+                indices.push(idx);
+                dailyFacts.push(rawFacts[idx]);
+            }
+            return dailyFacts;
+        }
+
+        function restartGame() {
+            if (isDailyMode) startDailyChallenge();
+            else startGame();
+        }
+
+        // --- GAME LOGIC ---
+        function nextRound() {
+            // Re-enable input
+            els.nextBtn.disabled = false;
+            
+            if (balance <= 0) return triggerGameOver();
+            if (roundsPlayed >= maxRounds) return triggerVictory();
+
+            roundsPlayed++;
+            if (deck.length === 0) deck = [...rawFacts].sort(() => Math.random() - 0.5);
+            currentFact = deck.pop();
+            isRoundActive = true;
+
+            els.round.innerText = `${roundsPlayed} / ${maxRounds}`;
+            els.factText.innerText = currentFact.text;
+            els.card.classList.remove('pulse-win');
+            els.card.style.transform = 'scale(1)';
+            els.card.style.borderColor = 'rgba(255,255,255,0.05)';
+            els.feedback.innerHTML = '';
+            
+            els.btnTrue.classList.remove('hidden');
+            els.btnFalse.classList.remove('hidden');
+            els.nextBtn.classList.add('hidden');
+            els.wagerControls.classList.remove('opacity-50', 'pointer-events-none');
+            
+            if (currentWager > balance) currentWager = balance;
+            updateWagerUI();
+        }
+
+        function updateWagerUI() {
+            els.wagerSlider.max = balance;
+            els.wagerSlider.value = currentWager;
+            els.wagerDisplay.innerText = `$${currentWager.toLocaleString()}`;
+        }
+
+        function setWagerPercent(pct) {
+            sfx.tick();
+            if (!isRoundActive) return;
+            currentWager = Math.floor(balance * pct);
+            if (currentWager < 1) currentWager = 1;
+            updateWagerUI();
+        }
+
+        function handleBet(userBetTrue) {
+            sfx.init();
+            if (!isRoundActive) return;
+            isRoundActive = false;
+
+            const isCorrect = userBetTrue === currentFact.isTrue;
+            const amount = currentWager;
+
+            els.wagerControls.classList.add('opacity-50', 'pointer-events-none');
+            els.btnTrue.classList.add('hidden');
+            els.btnFalse.classList.add('hidden');
+            els.nextBtn.classList.remove('hidden');
+
+            if (isCorrect) {
+                sfx.win();
+                balance += amount;
+                showFeedback(true, amount);
+                els.card.classList.add('pulse-win');
+                els.card.style.borderColor = 'var(--c-accent)'; 
+            } else {
+                sfx.lose();
+                balance -= amount;
+                showFeedback(false, amount);
+                document.body.classList.add('shake');
+                setTimeout(() => document.body.classList.remove('shake'), 400);
+                els.card.style.borderColor = '#ef4444';
+            }
+            updateBalanceUI();
+        }
+
+        function showFeedback(isWin, amount) {
+            const colorClass = isWin ? 'text-green-500' : 'text-red-500';
+            const label = isWin ? 'PAYOUT' : 'LOSS';
+            const sign = isWin ? '+' : '-';
+            
+            els.feedback.innerHTML = `
+                <div class="transform transition-all duration-300 scale-0 animate-[popIn_0.3s_ease-out_forwards]">
+                    <div class="px-6 py-2 rounded-lg border-2 ${isWin ? 'border-green-400 text-green-400' : 'border-red-400 text-red-400'} font-black uppercase text-xl tracking-widest bg-surface shadow-2xl">
+                        ${label}
+                    </div>
+                </div>
+            `;
+
+            const float = document.createElement('div');
+            float.className = `money-float ${colorClass}`;
+            float.innerText = `${sign}$${amount}`;
+            float.style.left = '50%';
+            float.style.top = '30%';
+            float.style.transform = 'translateX(-50%)';
+            document.body.appendChild(float);
+            setTimeout(() => float.remove(), 1500);
+        }
+
+        function updateBalanceUI() {
+            const start = parseInt(els.balance.innerText.replace(/[^0-9]/g, '')) || 0;
+            animateValue(els.balance, start, balance, 500);
+        }
+
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const current = Math.floor(progress * (end - start) + start);
+                obj.innerHTML = `$${current.toLocaleString()}`;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    if (balance <= 0) setTimeout(triggerGameOver, 1000);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // --- END GAME & SHOP ---
+        function triggerGameOver() {
+            updateLifetimeStats(0);
+            els.roundsScore.innerText = `${roundsPlayed - 1} / ${maxRounds}`;
+            
+            const goView = document.getElementById('view-gameover');
+            goView.style.pointerEvents = 'none'; // Lock
+            switchView('gameover');
+            setTimeout(() => { goView.style.pointerEvents = 'auto'; }, 1500); // Unlock
+        }
+
+        function triggerVictory() {
+            updateLifetimeStats(balance);
+            if (isDailyMode) updateStreak();
+            els.victoryScore.innerText = `$${balance.toLocaleString()}`;
+            
+            const vView = document.getElementById('view-victory');
+            vView.style.pointerEvents = 'none'; // Lock
+            switchView('victory');
+            setTimeout(() => { vView.style.pointerEvents = 'auto'; }, 1500); // Unlock
+        }
+
+        function updateLifetimeStats(winnings) {
+            if (winnings > 0) {
+                lifetimeEarnings += winnings;
+                localStorage.setItem('hst_lifetime', lifetimeEarnings);
+            }
+        }
+
+        function updateStreak() {
+            const today = new Date().toISOString().slice(0, 10);
+            if (lastPlayedDate !== today) {
+                currentStreak++;
+                lastPlayedDate = today;
+                localStorage.setItem('hst_streak', currentStreak);
+                localStorage.setItem('hst_last_played', lastPlayedDate);
+            }
+        }
+
+        function openShop() {
+            els.shopBalance.innerText = `$${lifetimeEarnings.toLocaleString()}`;
+            updateShopButtons();
+            switchView('shop');
+        }
+
+        function closeShop() {
+            switchView('start');
+        }
+
+        function buyItem(itemId, cost) {
+            if (lifetimeEarnings >= cost) {
+                sfx.buy();
+                lifetimeEarnings -= cost;
+                localStorage.setItem('hst_lifetime', lifetimeEarnings);
+                if (!inventory.includes(itemId)) {
+                    inventory.push(itemId);
+                    localStorage.setItem('hst_inventory', JSON.stringify(inventory));
+                }
+                equipItem(itemId);
+                openShop();
+            }
+        }
+
+        function equipItem(itemId) {
+            els.card.classList.remove('skin-gold', 'skin-cyber', 'skin-blueprint');
+            els.card.classList.add(itemId);
+            equippedSkin = itemId;
+            localStorage.setItem('hst_equipped', itemId);
+        }
+
+        function updateShopButtons() {
+            const items = ['skin-gold', 'skin-cyber', 'skin-blueprint'];
+            items.forEach(item => {
+                const btn = document.getElementById(`buy-${item}`);
+                if (inventory.includes(item)) {
+                    btn.innerText = "EQUIPPED";
+                    if (equippedSkin !== item) btn.innerText = "EQUIP";
+                    btn.onclick = () => { equipItem(item); openShop(); };
+                    btn.classList.remove('bg-surface-highlight');
+                    btn.classList.add('bg-green-600');
+                    btn.disabled = false;
+                } else {
+                    const cost = parseInt(btn.innerText.replace(/[^0-9]/g, ''));
+                    if (lifetimeEarnings < cost) {
+                        btn.disabled = true;
+                        btn.classList.add('opacity-50');
+                    } else {
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-50');
+                    }
+                }
+                if (equippedSkin === item && inventory.includes(item)) {
+                    btn.innerText = "ACTIVE";
+                    btn.disabled = true;
+                }
+            });
+        }
+
+        function shareResult(isWin) {
+            const mode = isDailyMode ? "Daily Challenge" : "Classic Run";
+            const rounds = isWin ? `${maxRounds}/${maxRounds}` : `${roundsPlayed-1}/${maxRounds}`;
+            const money = isWin ? `$${balance.toLocaleString()}` : "$0";
+            const text = `♠️ High Stakes Truth\n${mode}\n💰 ${money}\n✅ ${rounds} Survived\nPlay now: [Link]`;
+            
+            // Fallback copy method
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert("Score copied to clipboard!");
+            } catch (err) {
+                console.error('Failed to copy', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // --- SOUND & SETTINGS ---
+        class SoundFX {
+            constructor() { this.ctx = null; this.muted = true; }
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume().catch(e => console.log(e)); }
+            toggle() { this.muted = !this.muted; return this.muted; }
+            playTone(freq, type, duration, volume = 0.1, time = 0) {
+                if (this.muted || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + time);
+                    gain.gain.setValueAtTime(volume, this.ctx.currentTime + time);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + time + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + time);
+                    osc.stop(this.ctx.currentTime + time + duration);
+                } catch(e) {}
+            }
+            tick() { this.playTone(800, 'square', 0.05, 0.02); }
+            click() { this.playTone(400, 'sine', 0.1, 0.05); }
+            win() { this.playTone(523.25, 'triangle', 0.3, 0.1, 0); this.playTone(659.25, 'triangle', 0.3, 0.1, 0.1); this.playTone(783.99, 'triangle', 0.6, 0.1, 0.2); this.playTone(1046.50, 'sine', 0.8, 0.1, 0.3); }
+            lose() { this.playTone(150, 'sawtooth', 0.4, 0.15, 0); this.playTone(140, 'sawtooth', 0.4, 0.15, 0.1); }
+            buy() { this.playTone(600, 'sine', 0.1, 0.1); this.playTone(800, 'sine', 0.2, 0.1, 0.1); }
+        }
+        const sfx = new SoundFX();
+
+        function updateSoundToggleUI() {
+            const toggleBtn = els.toggleSound;
+            const knob = els.soundKnob;
+            if (sfx.muted) {
+                toggleBtn.classList.remove('bg-green-500');
+                toggleBtn.classList.add('bg-surface-highlight');
+                knob.style.transform = 'translateX(0)';
+            } else {
+                toggleBtn.classList.add('bg-green-500');
+                toggleBtn.classList.remove('bg-surface-highlight');
+                knob.style.transform = 'translateX(24px)';
+            }
+        }
+
+        els.toggleSound.addEventListener('click', () => { sfx.toggle(); if(!sfx.muted) sfx.init(); updateSoundToggleUI(); });
+        function openSettings() { updateSoundToggleUI(); switchView('settings'); }
+        function closeSettings() { switchView('start'); }
+        function openHowToPlay() { switchView('howto'); }
+        function closeHowToPlay() { switchView('settings'); }
+        
+        // --- EVENT LISTENERS ---
+        els.btnTrue.addEventListener('click', () => handleBet(true));
+        els.btnFalse.addEventListener('click', () => handleBet(false));
+        // Fix double tap issue on next button
+        els.nextBtn.addEventListener('click', () => { 
+            els.nextBtn.disabled = true; // prevent double click
+            sfx.click(); 
+            nextRound(); 
+        });
+        els.wagerSlider.addEventListener('input', (e) => { sfx.tick(); if (!isRoundActive) return; currentWager = parseInt(e.target.value); els.wagerDisplay.innerText = `$${currentWager.toLocaleString()}`; });
+    </script>
+</body>
+</html>
