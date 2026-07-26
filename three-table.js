@@ -739,38 +739,73 @@ export class HighStakesTable {
   }
 
   async revealCard(correct) {
+    // The result card finishes in a readable "dealer presentation" pose:
+    // lifted above the rail, moved toward the player, and tilted at the camera.
     const revealCamera = this.cameraHome.clone().add(
-      new THREE.Vector3(0, -0.24, -0.72)
+      new THREE.Vector3(0, -0.34, -0.62)
     );
+    const revealFocus = new THREE.Vector3(0, 0.72, 0.08);
+
     const cameraStart = this.cameraAnchor.clone();
+    const focusStart = this.focusAnchor.clone();
+    const positionStart = this.cardOuter.position.clone();
+    const scaleStart = this.cardOuter.scale.x;
+
+    const resultPosition = new THREE.Vector3(0, 1.08, 0.08);
+    const resultScale = 1.14;
+    const resultTilt = 0.34;
 
     await Promise.all([
-      this.tween(920, (progress) => {
+      this.tween(980, (progress) => {
         const eased = easeInOut(progress);
+
+        // Flip the card while lifting it into its final readable pose.
         this.cardFlip.rotation.x = Math.PI * eased;
-        this.cardOuter.position.y =
-          0.2 + Math.sin(progress * Math.PI) * 0.64;
+        this.cardOuter.position.lerpVectors(
+          positionStart,
+          resultPosition,
+          eased
+        );
+        this.cardOuter.position.y +=
+          Math.sin(progress * Math.PI) * 0.38;
+
+        this.cardOuter.rotation.x = resultTilt * eased;
         this.cardOuter.rotation.z =
-          Math.sin(progress * Math.PI) * -0.035;
+          Math.sin(progress * Math.PI) * -0.028;
+
+        const scale =
+          scaleStart + (resultScale - scaleStart) * eased;
+        this.cardOuter.scale.setScalar(scale);
       }),
-      this.tween(920, (progress) => {
+      this.tween(980, (progress) => {
         const eased = easeInOut(progress);
+
         this.leftHand.position.z =
           -4.25 + 1.9 * Math.sin(eased * Math.PI);
         this.leftHand.position.x =
           -1.25 + 0.32 * Math.sin(eased * Math.PI);
+
         this.cameraAnchor.lerpVectors(
           cameraStart,
           revealCamera,
           eased
         );
+        this.focusAnchor.lerpVectors(
+          focusStart,
+          revealFocus,
+          eased
+        );
       })
     ]);
 
-    this.cardOuter.position.y = 0.2;
-    this.cardOuter.rotation.z = 0;
+    // Hold the card above the rail until the player advances.
+    this.cardOuter.position.copy(resultPosition);
+    this.cardOuter.rotation.set(resultTilt, 0, 0);
+    this.cardOuter.scale.setScalar(resultScale);
+
     this.leftHand.position.set(-1.25, 0.5, -4.25);
     this.cameraAnchor.copy(revealCamera);
+    this.focusAnchor.copy(revealFocus);
 
     this.fx[correct ? "win" : "lose"] = 1;
     this.key.color.setHex(correct ? 0xffd66e : 0xff5b5b);
@@ -832,6 +867,7 @@ export class HighStakesTable {
     this.cardOuter.position.set(0, 0.2, -0.72);
     this.cardOuter.rotation.set(0, 0, 0);
     this.cardOuter.scale.setScalar(1);
+    this.focusAnchor.set(0, 0.15, 0.2);
 
     this.potGroup.position.set(0, 0.08, 1.86);
     this.potGroup.rotation.set(0, 0, 0);

@@ -73,3 +73,14 @@ This revision fixes the issues visible in the gameplay screenshots:
 - The countdown uses one continuous camera push across `3 → 2 → 1 → REVEAL`.
 - Each countdown marker has only a subtle scale-in rather than a full-screen zoom punch.
 - Buttons are locked during transitions to prevent double-tap animation glitches.
+
+
+## Card lift fix
+
+The answer card now finishes the reveal in a raised presentation pose:
+
+- lifted above the front rail
+- moved toward the player
+- tilted toward the camera
+- scaled up slightly
+- held in place until the next claim
