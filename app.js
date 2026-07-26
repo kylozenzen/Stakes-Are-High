@@ -326,6 +326,9 @@ import { HighStakesTable } from "./three-table.js";
       if (state.wager < state.modifier.min) {
         state.wager = state.modifier.min;
       }
+    } else {
+      $("modifierName").textContent = "";
+      $("modifierText").textContent = "";
     }
 
     updateWagerButtons();
@@ -369,10 +372,24 @@ import { HighStakesTable } from "./three-table.js";
   }
 
   function updateWagerButtons() {
+    const minimum = state.modifier?.min || 0.25;
+
     document.querySelectorAll("[data-wager]").forEach((button) => {
+      const percentage = Number(button.dataset.wager);
+      const blockedByRule = percentage < minimum;
+
       button.classList.toggle(
         "active",
-        Number(button.dataset.wager) === state.wager
+        percentage === state.wager
+      );
+      button.classList.toggle(
+        "rule-disabled",
+        blockedByRule
+      );
+      button.disabled = blockedByRule;
+      button.setAttribute(
+        "aria-disabled",
+        blockedByRule ? "true" : "false"
       );
     });
 

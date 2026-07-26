@@ -412,37 +412,6 @@ button:disabled {
   font-size: 0.86rem;
 }
 
-.modifier-banner {
-  position: absolute;
-  z-index: 13;
-  top: max(86px, calc(env(safe-area-inset-top) + 72px));
-  left: 50%;
-  width: min(calc(100% - 110px), 340px);
-  padding: 0.55rem 0.85rem;
-  transform: translateX(-50%);
-  border: 1px solid rgba(243, 203, 99, 0.34);
-  border-radius: 14px;
-  background: rgba(10, 24, 18, 0.94);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
-  text-align: center;
-}
-
-.modifier-banner strong,
-.modifier-banner span { display: block; }
-
-.modifier-banner strong {
-  color: var(--gold);
-  font-size: 0.68rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.modifier-banner span {
-  margin-top: 0.12rem;
-  color: var(--muted);
-  font-size: 0.56rem;
-}
-
 .claim-accessibility,
 .result-readout {
   position: absolute;
@@ -620,6 +589,57 @@ button:disabled {
 .control-heading strong {
   color: var(--gold);
   font-family: "JetBrains Mono";
+}
+
+
+.active-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 27px;
+  margin: -0.05rem 0 0.62rem;
+  padding: 0.36rem 0.58rem;
+  overflow: hidden;
+  border: 1px solid rgba(243, 203, 99, 0.2);
+  border-radius: 10px;
+  background: rgba(243, 203, 99, 0.075);
+  color: var(--muted);
+  font-size: 0.61rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.active-rule-label {
+  flex: 0 0 auto;
+  color: var(--gold);
+  font-size: 0.51rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.active-rule-copy {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.active-rule-copy strong {
+  color: var(--text);
+  font-weight: 900;
+}
+
+.chip-buttons button.rule-disabled {
+  opacity: 0.34;
+  filter: grayscale(0.32);
+  box-shadow:
+    0 3px 0 #71480e,
+    0 6px 14px rgba(0, 0, 0, 0.2);
+  cursor: not-allowed;
+}
+
+.chip-buttons button.rule-disabled:active {
+  transform: none;
 }
 
 .chip-buttons {
@@ -1061,5 +1081,26 @@ button:disabled {
   .countdown-number {
     min-height: 58px;
     font-size: 3.55rem;
+  }
+}
+
+
+@media (max-width: 390px) {
+  .active-rule {
+    gap: 0.35rem;
+    padding-inline: 0.48rem;
+    font-size: 0.56rem;
+  }
+
+  .active-rule-label {
+    font-size: 0.47rem;
+  }
+}
+
+@media (max-height: 680px) {
+  .active-rule {
+    min-height: 23px;
+    margin-bottom: 0.45rem;
+    padding-block: 0.27rem;
   }
 }

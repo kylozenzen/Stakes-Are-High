@@ -88,11 +88,6 @@
         </div>
       </header>
 
-      <div id="modifierBanner" class="modifier-banner hidden">
-        <strong id="modifierName">House Tax</strong>
-        <span id="modifierText">Minimum wager is 50%.</span>
-      </div>
-
       <div id="claimAccessibility" class="claim-accessibility" aria-live="polite">
         <div>
           <span id="categoryDisplay">Science</span>
@@ -118,6 +113,16 @@
             <span>Wager</span>
             <strong id="wagerDisplay">$500</strong>
           </div>
+
+          <div id="modifierBanner" class="active-rule hidden" aria-live="polite">
+            <span class="active-rule-label">Active rule</span>
+            <span class="active-rule-copy">
+              <strong id="modifierName">House Tax</strong>
+              <span aria-hidden="true"> · </span>
+              <span id="modifierText">Minimum wager is 50%.</span>
+            </span>
+          </div>
+
           <div class="chip-buttons" role="group" aria-label="Choose wager">
             <button data-wager="0.25">25%</button>
             <button data-wager="0.5" class="active">50%</button>

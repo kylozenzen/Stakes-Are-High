@@ -100,3 +100,14 @@ This pass specifically improves dealer readability and staging:
 - softened the vignette
 - slightly reduced the height of the top clue panel
 - fixed the flipped verdict card so the TRUE/FALSE reveal is no longer upside down
+
+
+## Modifier layout fix
+
+Round rules no longer float over the clue.
+
+- Active modifiers now appear as one compact sentence inside the wager panel.
+- The rule sits directly above the percentage chips because it affects betting.
+- The rule disappears automatically when the wager panel hides for countdown/reveal.
+- Wager percentages below a round's minimum are visibly disabled.
+- The clue panel remains completely unobstructed.
