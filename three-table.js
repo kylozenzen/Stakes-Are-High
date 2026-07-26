@@ -1,17 +1,28 @@
-
 import * as THREE from "three";
 
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 const easeInOut = (t) =>
-  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+const lerp = (start, end, progress) =>
+  start + (end - start) * progress;
 
 export class HighStakesTable {
   constructor(canvas) {
-    if (!canvas) throw new Error("Game canvas unavailable");
+    if (!canvas) {
+      throw new Error("Game canvas unavailable");
+    }
 
     this.canvas = canvas;
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(43, 1, 0.1, 100);
+    this.camera = new THREE.PerspectiveCamera(
+      43,
+      1,
+      0.1,
+      100
+    );
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
@@ -20,79 +31,159 @@ export class HighStakesTable {
 
     this.clock = new THREE.Clock();
     this.tweens = [];
-    this.fx = { win: 0, lose: 0, allIn: 0 };
-    this.potChips = [];
     this.playerChips = [];
-    this.counter = null;
+    this.potChips = [];
+    this.currentPotCount = 0;
 
-    this.cameraHome = new THREE.Vector3(0, 7.35, 10.65);
+    this.fx = {
+      win: 0,
+      lose: 0,
+      allIn: 0
+    };
+
+    this.cameraHome = new THREE.Vector3(
+      0,
+      7.2,
+      10.4
+    );
     this.cameraAnchor = this.cameraHome.clone();
-    this.focusAnchor = new THREE.Vector3(0, 0.08, 0.45);
+    this.focusAnchor = new THREE.Vector3(
+      0,
+      0.38,
+      0.15
+    );
 
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.dealerLook = 0;
+    this.dealerLookTarget = 0;
+    this.dealerHeadPitch = 0;
+    this.dealerHeadPitchTarget = 0;
+
+    this.renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio || 1, 1.7)
+    );
+    this.renderer.outputColorSpace =
+      THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.22;
+    this.renderer.shadowMap.type =
+      THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping =
+      THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.2;
 
     this.scene.background = new THREE.Color(0x03100b);
-    this.scene.fog = new THREE.FogExp2(0x03100b, 0.042);
+    this.scene.fog = new THREE.FogExp2(
+      0x03100b,
+      0.038
+    );
     this.camera.position.copy(this.cameraHome);
 
     this.build();
     this.resize();
 
-    this.resizeObserver = new ResizeObserver(() => this.resize());
+    this.resizeObserver = new ResizeObserver(
+      () => this.resize()
+    );
     this.resizeObserver.observe(canvas);
+
     this.animate();
   }
 
-  material(color, roughness = 0.6, metalness = 0.05) {
-    return new THREE.MeshStandardMaterial({ color, roughness, metalness });
+  standardMaterial(
+    color,
+    roughness = 0.6,
+    metalness = 0.05
+  ) {
+    return new THREE.MeshStandardMaterial({
+      color,
+      roughness,
+      metalness
+    });
   }
 
   build() {
-    this.ambient = new THREE.HemisphereLight(0xc6e4d5, 0x160a05, 2.65);
+    this.ambient = new THREE.HemisphereLight(
+      0xc8e4d7,
+      0x140905,
+      2.6
+    );
     this.scene.add(this.ambient);
 
-    this.key = new THREE.SpotLight(0xffdc8a, 76, 40, Math.PI / 5.1, 0.5, 1.12);
-    this.key.position.set(0, 10, 4.5);
-    this.key.target.position.set(0, 0, -0.4);
-    this.key.castShadow = true;
-    this.key.shadow.mapSize.set(1024, 1024);
-    this.scene.add(this.key, this.key.target);
+    this.keyLight = new THREE.SpotLight(
+      0xffdc8a,
+      74,
+      40,
+      Math.PI / 5.1,
+      0.5,
+      1.12
+    );
+    this.keyLight.position.set(0, 10, 4.4);
+    this.keyLight.target.position.set(0, 0.1, -0.5);
+    this.keyLight.castShadow = true;
+    this.keyLight.shadow.mapSize.set(1024, 1024);
+    this.scene.add(
+      this.keyLight,
+      this.keyLight.target
+    );
 
-    this.fill = new THREE.PointLight(0x76d6a5, 24, 22);
-    this.fill.position.set(-4.8, 3.2, 1.8);
-    this.scene.add(this.fill);
+    this.fillLight = new THREE.PointLight(
+      0x75d5a5,
+      23,
+      22
+    );
+    this.fillLight.position.set(-4.7, 3.1, 1.6);
+    this.scene.add(this.fillLight);
 
-    this.red = new THREE.PointLight(0x8f2020, 4, 16);
-    this.red.position.set(4.8, 2.2, 0.4);
-    this.scene.add(this.red);
+    this.warmLight = new THREE.PointLight(
+      0xd9783d,
+      5,
+      16
+    );
+    this.warmLight.position.set(4.2, 2.1, -1.8);
+    this.scene.add(this.warmLight);
 
-    this.selectionLight = new THREE.PointLight(0xf4d36d, 0, 8);
-    this.selectionLight.position.set(0, 1.5, 1.1);
+    this.selectionLight = new THREE.PointLight(
+      0xf4d36d,
+      0,
+      8
+    );
+    this.selectionLight.position.set(0, 1.35, 0.9);
     this.scene.add(this.selectionLight);
 
     this.root = new THREE.Group();
     this.scene.add(this.root);
 
     this.buildTable();
-    this.buildZones();
+    this.buildAnswerZones();
+    this.buildDealer();
     this.buildCard();
     this.buildChips();
-    this.buildHands();
     this.buildProps();
   }
 
   buildTable() {
-    const wood = this.material(0x321507, 0.5, 0.08);
-    const felt = this.material(0x087a49, 0.91, 0.02);
-    const brass = this.material(0xd2a43e, 0.25, 0.8);
+    const wood = this.standardMaterial(
+      0x321507,
+      0.5,
+      0.08
+    );
+    const felt = this.standardMaterial(
+      0x087649,
+      0.91,
+      0.02
+    );
+    const brass = this.standardMaterial(
+      0xd2a43e,
+      0.25,
+      0.8
+    );
 
     const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(5.05, 5.2, 0.42, 72),
+      new THREE.CylinderGeometry(
+        5.05,
+        5.2,
+        0.42,
+        72
+      ),
       wood
     );
     base.scale.z = 0.68;
@@ -101,17 +192,27 @@ export class HighStakesTable {
     base.receiveShadow = true;
     this.root.add(base);
 
-    const top = new THREE.Mesh(
-      new THREE.CylinderGeometry(4.62, 4.62, 0.16, 72),
+    const feltTop = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        4.62,
+        4.62,
+        0.16,
+        72
+      ),
       felt
     );
-    top.scale.z = 0.66;
-    top.position.y = -0.11;
-    top.receiveShadow = true;
-    this.root.add(top);
+    feltTop.scale.z = 0.66;
+    feltTop.position.y = -0.11;
+    feltTop.receiveShadow = true;
+    this.root.add(feltTop);
 
     const rail = new THREE.Mesh(
-      new THREE.TorusGeometry(3.83, 0.24, 18, 100),
+      new THREE.TorusGeometry(
+        3.83,
+        0.24,
+        18,
+        100
+      ),
       wood
     );
     rail.rotation.x = Math.PI / 2;
@@ -121,7 +222,12 @@ export class HighStakesTable {
     this.root.add(rail);
 
     const trim = new THREE.Mesh(
-      new THREE.TorusGeometry(3.57, 0.05, 12, 100),
+      new THREE.TorusGeometry(
+        3.57,
+        0.05,
+        12,
+        100
+      ),
       brass
     );
     trim.rotation.x = Math.PI / 2;
@@ -130,11 +236,16 @@ export class HighStakesTable {
     this.root.add(trim);
 
     const innerLine = new THREE.Mesh(
-      new THREE.TorusGeometry(2.82, 0.02, 8, 90),
+      new THREE.TorusGeometry(
+        2.82,
+        0.02,
+        8,
+        90
+      ),
       new THREE.MeshBasicMaterial({
         color: 0x7bb394,
         transparent: true,
-        opacity: 0.58
+        opacity: 0.55
       })
     );
     innerLine.rotation.x = Math.PI / 2;
@@ -143,28 +254,81 @@ export class HighStakesTable {
     this.root.add(innerLine);
   }
 
-  roundedRect(context, x, y, width, height, radius) {
-    const r = Math.min(radius, width / 2, height / 2);
+  roundedRect(
+    context,
+    x,
+    y,
+    width,
+    height,
+    radius
+  ) {
+    const r = Math.min(
+      radius,
+      width / 2,
+      height / 2
+    );
+
     context.beginPath();
     context.moveTo(x + r, y);
-    context.arcTo(x + width, y, x + width, y + height, r);
-    context.arcTo(x + width, y + height, x, y + height, r);
-    context.arcTo(x, y + height, x, y, r);
-    context.arcTo(x, y, x + width, y, r);
+    context.arcTo(
+      x + width,
+      y,
+      x + width,
+      y + height,
+      r
+    );
+    context.arcTo(
+      x + width,
+      y + height,
+      x,
+      y + height,
+      r
+    );
+    context.arcTo(
+      x,
+      y + height,
+      x,
+      y,
+      r
+    );
+    context.arcTo(
+      x,
+      y,
+      x + width,
+      y,
+      r
+    );
     context.closePath();
   }
 
-  zoneTexture(label, subtitle, color) {
+  answerZoneTexture(
+    label,
+    subtitle,
+    color
+  ) {
     const canvas = document.createElement("canvas");
     canvas.width = 1024;
     canvas.height = 500;
-    const context = canvas.getContext("2d");
 
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    this.roundedRect(context, 28, 28, 968, 444, 180);
-    context.fillStyle = "rgba(3, 12, 8, .84)";
+    const context = canvas.getContext("2d");
+    context.clearRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    this.roundedRect(
+      context,
+      28,
+      28,
+      968,
+      444,
+      180
+    );
+    context.fillStyle = "rgba(3, 12, 8, .88)";
     context.fill();
-    context.lineWidth = 16;
+    context.lineWidth = 15;
     context.strokeStyle = color;
     context.stroke();
 
@@ -173,7 +337,8 @@ export class HighStakesTable {
     context.font = "400 154px Bebas Neue";
     context.fillText(label, 512, 250);
 
-    context.fillStyle = "rgba(246, 240, 223, .72)";
+    context.fillStyle =
+      "rgba(246, 240, 223, .75)";
     context.font = "800 34px Inter";
     context.fillText(subtitle, 512, 360);
 
@@ -186,19 +351,29 @@ export class HighStakesTable {
     return texture;
   }
 
-  buildZones() {
+  buildAnswerZones() {
     this.zones = {};
 
-    const make = (key, label, subtitle, x, color) => {
+    const makeZone = (
+      key,
+      label,
+      subtitle,
+      x,
+      color
+    ) => {
       const material = new THREE.MeshBasicMaterial({
-        map: this.zoneTexture(label, subtitle, color),
+        map: this.answerZoneTexture(
+          label,
+          subtitle,
+          color
+        ),
         transparent: true,
-        opacity: 0.9,
+        opacity: 0.88,
         depthWrite: false
       });
 
       const zone = new THREE.Mesh(
-        new THREE.PlaneGeometry(2.85, 1.42),
+        new THREE.PlaneGeometry(2.7, 1.32),
         material
       );
       zone.rotation.x = -Math.PI / 2;
@@ -206,7 +381,12 @@ export class HighStakesTable {
       this.root.add(zone);
 
       const frame = new THREE.Mesh(
-        new THREE.TorusGeometry(0.94, 0.032, 10, 72),
+        new THREE.TorusGeometry(
+          0.9,
+          0.032,
+          10,
+          72
+        ),
         new THREE.MeshBasicMaterial({
           color: 0xf4d36d,
           transparent: true,
@@ -218,276 +398,456 @@ export class HighStakesTable {
       frame.position.set(x, 0.11, 0.92);
       this.root.add(frame);
 
-      this.zones[key] = { zone, frame, material };
+      this.zones[key] = {
+        zone,
+        frame,
+        material
+      };
     };
 
-    make("false", "FALSE", "CALL THE BLUFF", -2.0, "#df4f4f");
-    make("true", "TRUE", "BANK IT", 2.0, "#5ae68b");
+    makeZone(
+      "false",
+      "FALSE",
+      "CALL THE BLUFF",
+      -1.95,
+      "#df5555"
+    );
+    makeZone(
+      "true",
+      "TRUE",
+      "BANK IT",
+      1.95,
+      "#62e592"
+    );
+  }
+
+  buildDealer() {
+    this.dealer = new THREE.Group();
+    this.dealer.position.set(0, 0, -3.4);
+    this.root.add(this.dealer);
+
+    const suitMaterial = this.standardMaterial(
+      0x171b19,
+      0.84,
+      0.02
+    );
+    const vestMaterial = this.standardMaterial(
+      0x4a1717,
+      0.76,
+      0.03
+    );
+    const shirtMaterial = this.standardMaterial(
+      0xe8e1d1,
+      0.76,
+      0.01
+    );
+    const maskMaterial = this.standardMaterial(
+      0xd8c29c,
+      0.7,
+      0.04
+    );
+    const goldMaterial = this.standardMaterial(
+      0xd4a642,
+      0.26,
+      0.74
+    );
+    const gloveMaterial = this.standardMaterial(
+      0x191b1a,
+      0.78,
+      0.02
+    );
+
+    this.dealerTorso = new THREE.Group();
+    this.dealer.add(this.dealerTorso);
+
+    const torso = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        1.62,
+        1.5,
+        0.58
+      ),
+      suitMaterial
+    );
+    torso.position.set(0, 1.18, 0);
+    torso.castShadow = true;
+    this.dealerTorso.add(torso);
+
+    const shirt = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        0.58,
+        1.02,
+        0.075
+      ),
+      shirtMaterial
+    );
+    shirt.position.set(0, 1.28, 0.33);
+    shirt.castShadow = true;
+    this.dealerTorso.add(shirt);
+
+    const leftVest = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        0.43,
+        1.02,
+        0.085
+      ),
+      vestMaterial
+    );
+    leftVest.position.set(-0.4, 1.25, 0.37);
+    leftVest.rotation.z = -0.06;
+    leftVest.castShadow = true;
+
+    const rightVest = leftVest.clone();
+    rightVest.position.x = 0.4;
+    rightVest.rotation.z = 0.06;
+
+    this.dealerTorso.add(
+      leftVest,
+      rightVest
+    );
+
+    const leftBow = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        0.28,
+        0.13,
+        0.09
+      ),
+      goldMaterial
+    );
+    leftBow.position.set(-0.14, 1.77, 0.42);
+    leftBow.rotation.z = -0.42;
+
+    const rightBow = leftBow.clone();
+    rightBow.position.x = 0.14;
+    rightBow.rotation.z = 0.42;
+
+    this.dealerTorso.add(
+      leftBow,
+      rightBow
+    );
+
+    const leftShoulder = new THREE.Mesh(
+      new THREE.SphereGeometry(
+        0.37,
+        20,
+        14
+      ),
+      suitMaterial
+    );
+    leftShoulder.position.set(-0.83, 1.55, 0);
+    leftShoulder.scale.set(1, 0.78, 1);
+    leftShoulder.castShadow = true;
+
+    const rightShoulder = leftShoulder.clone();
+    rightShoulder.position.x = 0.83;
+
+    this.dealerTorso.add(
+      leftShoulder,
+      rightShoulder
+    );
+
+    const neck = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        0.16,
+        0.18,
+        0.24,
+        20
+      ),
+      maskMaterial
+    );
+    neck.position.set(0, 2.02, 0);
+    neck.castShadow = true;
+    this.dealer.add(neck);
+
+    this.dealerHead = new THREE.Group();
+    this.dealerHead.position.set(0, 2.42, 0.02);
+    this.dealer.add(this.dealerHead);
+
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(
+        0.44,
+        28,
+        20
+      ),
+      suitMaterial
+    );
+    head.scale.set(0.94, 1.1, 0.9);
+    head.castShadow = true;
+    this.dealerHead.add(head);
+
+    const mask = new THREE.Mesh(
+      new THREE.CircleGeometry(0.31, 32),
+      maskMaterial
+    );
+    mask.position.set(0, -0.01, 0.4);
+    this.dealerHead.add(mask);
+
+    const eyeMaterial =
+      new THREE.MeshBasicMaterial({
+        color: 0x17140b
+      });
+
+    const leftEye = new THREE.Mesh(
+      new THREE.SphereGeometry(
+        0.045,
+        12,
+        8
+      ),
+      eyeMaterial
+    );
+    leftEye.position.set(-0.12, 0.055, 0.43);
+
+    const rightEye = leftEye.clone();
+    rightEye.position.x = 0.12;
+
+    this.dealerHead.add(
+      leftEye,
+      rightEye
+    );
+
+    const brow = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        0.4,
+        0.035,
+        0.035
+      ),
+      goldMaterial
+    );
+    brow.position.set(0, 0.18, 0.43);
+    this.dealerHead.add(brow);
+
+    const buildArm = (side) => {
+      const arm = new THREE.Group();
+      arm.position.set(
+        side * 0.82,
+        1.54,
+        0.02
+      );
+      arm.rotation.z = side * -0.14;
+      this.dealer.add(arm);
+
+      const upper = new THREE.Mesh(
+        new THREE.CapsuleGeometry(
+          0.155,
+          0.5,
+          6,
+          12
+        ),
+        suitMaterial
+      );
+      upper.position.y = -0.34;
+      upper.castShadow = true;
+      arm.add(upper);
+
+      const forearm = new THREE.Group();
+      forearm.position.set(0, -0.69, 0.04);
+      forearm.rotation.x = 1.08;
+      arm.add(forearm);
+
+      const sleeve = new THREE.Mesh(
+        new THREE.CapsuleGeometry(
+          0.14,
+          0.55,
+          6,
+          12
+        ),
+        suitMaterial
+      );
+      sleeve.position.y = -0.31;
+      sleeve.castShadow = true;
+      forearm.add(sleeve);
+
+      const cuff = new THREE.Mesh(
+        new THREE.CylinderGeometry(
+          0.15,
+          0.15,
+          0.13,
+          18
+        ),
+        shirtMaterial
+      );
+      cuff.position.y = -0.64;
+      cuff.castShadow = true;
+      forearm.add(cuff);
+
+      const hand = new THREE.Mesh(
+        new THREE.SphereGeometry(
+          0.18,
+          18,
+          12
+        ),
+        gloveMaterial
+      );
+      hand.position.y = -0.78;
+      hand.scale.set(1.05, 0.72, 1.2);
+      hand.castShadow = true;
+      forearm.add(hand);
+
+      return {
+        group: arm,
+        forearm,
+        hand,
+        baseRotationZ: arm.rotation.z,
+        baseForearmX: forearm.rotation.x
+      };
+    };
+
+    this.dealerLeftArm = buildArm(-1);
+    this.dealerRightArm = buildArm(1);
+
+    const chair = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        2.2,
+        1.75,
+        0.25
+      ),
+      this.standardMaterial(
+        0x0e1713,
+        0.9,
+        0.01
+      )
+    );
+    chair.position.set(0, 1.36, -0.38);
+    chair.castShadow = true;
+    this.dealer.add(chair);
+    chair.renderOrder = -1;
   }
 
   buildCard() {
     this.cardOuter = new THREE.Group();
-    this.cardOuter.position.set(0, 0.22, -0.48);
-    this.cardOuter.rotation.x = 0.12;
+    this.cardOuter.position.set(0, 0.2, -0.48);
+    this.cardOuter.rotation.x = 0.11;
     this.root.add(this.cardOuter);
 
     this.cardFlip = new THREE.Group();
     this.cardOuter.add(this.cardFlip);
 
-    this.cardBaseMaterial = this.material(0xc2b495, 0.7, 0.01);
+    this.cardBaseMaterial = this.standardMaterial(
+      0xbba982,
+      0.68,
+      0.02
+    );
+
     this.cardBase = new THREE.Mesh(
-      new THREE.BoxGeometry(4.22, 0.1, 2.66),
+      new THREE.BoxGeometry(
+        3.2,
+        0.09,
+        1.92
+      ),
       this.cardBaseMaterial
     );
     this.cardBase.castShadow = true;
     this.cardBase.receiveShadow = true;
     this.cardFlip.add(this.cardBase);
 
-    this.frontMaterial = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      roughness: 0.72,
-      metalness: 0.01
-    });
-    this.backMaterial = this.frontMaterial.clone();
-
-    this.frontPlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(4.12, 2.56),
-      this.frontMaterial
-    );
-    this.frontPlane.rotation.x = -Math.PI / 2;
-    this.frontPlane.position.y = 0.056;
-    this.frontPlane.receiveShadow = true;
-    this.cardFlip.add(this.frontPlane);
-
-    this.backPlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(4.12, 2.56),
-      this.backMaterial
-    );
-    this.backPlane.rotation.x = Math.PI / 2;
-    this.backPlane.rotation.z = Math.PI;
-    this.backPlane.position.y = -0.056;
-    this.backPlane.receiveShadow = true;
-    this.cardFlip.add(this.backPlane);
-  }
-
-  createChip(color) {
-    const group = new THREE.Group();
-
-    const body = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.24, 0.24, 0.076, 32),
-      this.material(color, 0.34, 0.2)
-    );
-    body.castShadow = true;
-    group.add(body);
-
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.18, 0.021, 8, 28),
-      this.material(0xf7df92, 0.26, 0.65)
-    );
-    ring.rotation.x = Math.PI / 2;
-    ring.position.y = 0.041;
-    group.add(ring);
-
-    return group;
-  }
-
-  buildChips() {
-    const colors = [0xf0c75a, 0xe8e2cf, 0xc43b3b, 0x202120];
-
-    this.playerGroup = new THREE.Group();
-    this.playerGroup.position.set(0, 0.07, 2.45);
-    this.root.add(this.playerGroup);
-
-    for (let stack = 0; stack < 4; stack += 1) {
-      for (let level = 0; level < 4; level += 1) {
-        const chip = this.createChip(colors[stack]);
-        chip.position.set(
-          (stack - 1.5) * 0.55,
-          level * 0.082,
-          0
-        );
-        chip.rotation.y = (stack + level) * 0.25;
-        this.playerGroup.add(chip);
-        this.playerChips.push(chip);
-      }
-    }
-
-    this.potGroup = new THREE.Group();
-    this.potGroup.position.set(0, 0.09, 1.52);
-    this.root.add(this.potGroup);
-
-    for (let index = 0; index < 12; index += 1) {
-      const chip = this.createChip(colors[index % colors.length]);
-      chip.visible = false;
-      this.potGroup.add(chip);
-      this.potChips.push(chip);
-    }
-  }
-
-  buildHands() {
-    const glove = this.material(0x171918, 0.82);
-    const cuff = this.material(0xf0eee6, 0.75);
-    const sleeve = this.material(0x191b1a, 0.86);
-
-    const make = (side) => {
-      const group = new THREE.Group();
-
-      const sleeveMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(0.72, 0.2, 1.55),
-        sleeve
-      );
-      sleeveMesh.position.z = -0.7;
-
-      const cuffMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(0.76, 0.22, 0.32),
-        cuff
-      );
-      cuffMesh.position.z = 0.05;
-
-      const palm = new THREE.Mesh(
-        new THREE.BoxGeometry(0.68, 0.22, 0.74),
-        glove
-      );
-      palm.position.z = 0.5;
-
-      [sleeveMesh, cuffMesh, palm].forEach((mesh) => {
-        mesh.castShadow = true;
-        group.add(mesh);
+    this.cardBackMaterial =
+      new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.68,
+        metalness: 0.01
       });
 
-      for (let index = 0; index < 4; index += 1) {
-        const finger = new THREE.Mesh(
-          new THREE.CapsuleGeometry(0.065, 0.38, 5, 8),
-          glove
-        );
-        finger.rotation.x = Math.PI / 2;
-        finger.position.set((index - 1.5) * 0.13, -0.01, 0.93);
-        finger.castShadow = true;
-        group.add(finger);
-      }
+    this.verdictMaterial =
+      this.cardBackMaterial.clone();
 
-      group.position.set(side * 1.25, 0.5, -4.25);
-      group.rotation.y = side * -0.08;
-      this.root.add(group);
-      return group;
-    };
-
-    this.leftHand = make(-1);
-    this.rightHand = make(1);
-  }
-
-  buildProps() {
-    const dealerButton = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.32, 0.32, 0.08, 32),
-      this.material(0xd0a33d, 0.24, 0.82)
+    this.cardTop = new THREE.Mesh(
+      new THREE.PlaneGeometry(
+        3.1,
+        1.82
+      ),
+      this.cardBackMaterial
     );
-    dealerButton.position.set(-3.05, 0.12, -1.7);
-    dealerButton.castShadow = true;
-    this.root.add(dealerButton);
+    this.cardTop.rotation.x = -Math.PI / 2;
+    this.cardTop.position.y = 0.051;
+    this.cardFlip.add(this.cardTop);
 
-    const glass = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.34, 0.28, 0.72, 28),
-      new THREE.MeshPhysicalMaterial({
-        color: 0xb87333,
-        roughness: 0.08,
-        transmission: 0.35,
-        transparent: true,
-        opacity: 0.72
-      })
+    this.cardBottom = new THREE.Mesh(
+      new THREE.PlaneGeometry(
+        3.1,
+        1.82
+      ),
+      this.verdictMaterial
     );
-    glass.position.set(3.15, 0.4, -1.72);
-    glass.castShadow = true;
-    this.root.add(glass);
+    this.cardBottom.rotation.x = Math.PI / 2;
+    this.cardBottom.rotation.z = Math.PI;
+    this.cardBottom.position.y = -0.051;
+    this.cardFlip.add(this.cardBottom);
+
+    this.cardBackMaterial.map =
+      this.makeCardBackTexture();
+    this.cardBackMaterial.needsUpdate = true;
   }
 
-  wrap(context, text, maxWidth, maxLines) {
-    const words = text.split(/\s+/);
-    const lines = [];
-    let line = "";
-
-    for (const word of words) {
-      const test = line ? `${line} ${word}` : word;
-      if (context.measureText(test).width > maxWidth && line) {
-        lines.push(line);
-        line = word;
-        if (lines.length === maxLines - 1) break;
-      } else {
-        line = test;
-      }
-    }
-
-    if (line && lines.length < maxLines) lines.push(line);
-    return lines;
-  }
-
-  cardTexture(fact, backSide) {
+  makeCardBackTexture() {
     const canvas = document.createElement("canvas");
-    canvas.width = 1500;
-    canvas.height = 960;
+    canvas.width = 1200;
+    canvas.height = 720;
     const context = canvas.getContext("2d");
 
-    const gradient = context.createLinearGradient(0, 0, 1500, 960);
-    gradient.addColorStop(0, "#fffdf6");
-    gradient.addColorStop(1, "#e9dec4");
+    const gradient = context.createLinearGradient(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+    gradient.addColorStop(0, "#102e25");
+    gradient.addColorStop(1, "#06140f");
+
     context.fillStyle = gradient;
-    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
 
-    context.strokeStyle = "#b49348";
+    context.strokeStyle = "#d5aa48";
     context.lineWidth = 18;
-    context.strokeRect(32, 32, 1436, 896);
+    context.strokeRect(
+      28,
+      28,
+      canvas.width - 56,
+      canvas.height - 56
+    );
 
-    context.strokeStyle = "rgba(28, 35, 31, .18)";
-    context.lineWidth = 3;
-    context.strokeRect(58, 58, 1384, 844);
+    context.strokeStyle =
+      "rgba(213, 170, 72, .34)";
+    context.lineWidth = 4;
+    context.strokeRect(
+      56,
+      56,
+      canvas.width - 112,
+      canvas.height - 112
+    );
+
     context.textAlign = "center";
+    context.fillStyle = "#d9b75d";
+    context.font = "400 122px Bebas Neue";
+    context.fillText(
+      "HIGH STAKES",
+      600,
+      295
+    );
+    context.fillText(
+      "TRUTH",
+      600,
+      420
+    );
 
-    if (!backSide) {
-      context.fillStyle = "#687267";
-      context.font = "800 46px Inter";
-      context.textAlign = "left";
-      context.fillText(fact.category.toUpperCase(), 96, 112);
+    context.font = "400 76px Georgia";
+    context.fillText(
+      "♠   ♦   ♣   ♥",
+      600,
+      545
+    );
 
-      context.textAlign = "right";
-      context.fillText(
-        ["", "COMMON", "TRICKY", "DEEP CUT"][fact.difficulty] || "TRICKY",
-        1404,
-        112
-      );
-
-      context.textAlign = "center";
-      context.fillStyle = "#1c211e";
-      context.font = "900 91px Inter";
-      const lines = this.wrap(context, fact.text, 1240, 5);
-      const lineHeight = 108;
-      const start = 455 - ((lines.length - 1) * lineHeight) / 2;
-      lines.forEach((line, index) => {
-        context.fillText(line, 750, start + index * lineHeight);
-      });
-
-      context.fillStyle = "#788078";
-      context.font = "900 34px Inter";
-      context.fillText("TRUE OR FALSE?", 750, 858);
-    } else {
-      const answerColor = fact.answer ? "#126b3a" : "#a72929";
-      context.fillStyle = answerColor;
-      context.font = "400 230px Bebas Neue";
-      context.fillText(fact.answer ? "TRUE" : "FALSE", 750, 280);
-
-      context.strokeStyle = answerColor;
-      context.lineWidth = 11;
-      context.strokeRect(430, 74, 640, 255);
-
-      context.fillStyle = "#262d29";
-      context.font = "800 53px Inter";
-      const lines = this.wrap(context, fact.explanation, 1240, 7);
-      lines.forEach((line, index) => {
-        context.fillText(line, 750, 495 + index * 69);
-      });
-
-      context.fillStyle = "#7d836f";
-      context.font = "900 30px Inter";
-      context.fillText("THE HOUSE HAS SPOKEN", 750, 885);
-    }
+    context.fillStyle =
+      "rgba(246, 240, 223, .62)";
+    context.font = "800 28px Inter";
+    context.fillText(
+      "THE HOUSE HAS ONE ANSWER",
+      600,
+      625
+    );
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
@@ -495,120 +855,351 @@ export class HighStakesTable {
       8,
       this.renderer.capabilities.getMaxAnisotropy()
     );
-    texture.needsUpdate = true;
     return texture;
   }
 
-  async dealFact(fact) {
-    this.resetZones();
-    this.cardFlip.rotation.x = 0;
-    this.cardOuter.position.set(0, 1.2, -4.6);
-    this.cardOuter.rotation.set(0.12, -0.03, -0.05);
-    this.cardOuter.scale.setScalar(0.88);
+  makeVerdictTexture(answer) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1200;
+    canvas.height = 720;
+    const context = canvas.getContext("2d");
 
-    if (this.frontMaterial.map) this.frontMaterial.map.dispose();
-    if (this.backMaterial.map) this.backMaterial.map.dispose();
+    const gradient = context.createLinearGradient(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+    gradient.addColorStop(0, "#fffdf6");
+    gradient.addColorStop(1, "#e8ddc3");
 
-    this.frontMaterial.map = this.cardTexture(fact, false);
-    this.backMaterial.map = this.cardTexture(fact, true);
-    this.frontMaterial.needsUpdate = true;
-    this.backMaterial.needsUpdate = true;
+    context.fillStyle = gradient;
+    context.fillRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
 
-    await Promise.all([
-      this.tween(720, (progress) => {
-        const eased = easeOut(progress);
-        this.cardOuter.position.set(
-          0,
-          1.2 * (1 - eased) + 0.2 * eased,
-          -4.4 * (1 - eased) - 0.48 * eased
+    const color = answer
+      ? "#137344"
+      : "#b12d34";
+
+    context.strokeStyle = "#b49348";
+    context.lineWidth = 18;
+    context.strokeRect(
+      28,
+      28,
+      canvas.width - 56,
+      canvas.height - 56
+    );
+
+    context.textAlign = "center";
+    context.fillStyle = "#73796e";
+    context.font = "900 31px Inter";
+    context.fillText(
+      "HOUSE VERDICT",
+      600,
+      118
+    );
+
+    context.fillStyle = color;
+    context.font = "400 270px Bebas Neue";
+    context.fillText(
+      answer ? "TRUE" : "FALSE",
+      600,
+      405
+    );
+
+    context.strokeStyle = color;
+    context.lineWidth = 12;
+    context.strokeRect(
+      280,
+      175,
+      640,
+      285
+    );
+
+    context.fillStyle = "#6f756a";
+    context.font = "900 30px Inter";
+    context.fillText(
+      "THE CARD DOES NOT LIE",
+      600,
+      585
+    );
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = Math.min(
+      8,
+      this.renderer.capabilities.getMaxAnisotropy()
+    );
+    return texture;
+  }
+
+  createChip(color) {
+    const chip = new THREE.Group();
+
+    const body = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        0.235,
+        0.235,
+        0.076,
+        32
+      ),
+      this.standardMaterial(
+        color,
+        0.34,
+        0.2
+      )
+    );
+    body.castShadow = true;
+    chip.add(body);
+
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(
+        0.177,
+        0.021,
+        8,
+        28
+      ),
+      this.standardMaterial(
+        0xf7df92,
+        0.26,
+        0.65
+      )
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.041;
+    chip.add(ring);
+
+    return chip;
+  }
+
+  buildChips() {
+    const colors = [
+      0xf0c75a,
+      0xe8e2cf,
+      0xc43b3b,
+      0x202120
+    ];
+
+    this.playerChipGroup = new THREE.Group();
+    this.playerChipGroup.position.set(
+      0,
+      0.07,
+      2.38
+    );
+    this.root.add(this.playerChipGroup);
+
+    for (let stack = 0; stack < 4; stack += 1) {
+      for (let level = 0; level < 4; level += 1) {
+        const chip = this.createChip(
+          colors[stack]
         );
-        this.cardOuter.scale.setScalar(0.88 + 0.12 * eased);
-        this.cardOuter.rotation.z = -0.07 + 0.07 * eased;
-      }),
-      this.tween(520, (progress) => {
-        this.rightHand.position.z =
-          -4.25 + 1.48 * Math.sin(easeInOut(progress) * Math.PI);
-      })
-    ]);
+        chip.position.set(
+          (stack - 1.5) * 0.53,
+          level * 0.082,
+          0
+        );
+        chip.rotation.y =
+          (stack + level) * 0.23;
+        this.playerChipGroup.add(chip);
+        this.playerChips.push(chip);
+      }
+    }
 
-    this.rightHand.position.z = -4.25;
-  }
+    this.potGroup = new THREE.Group();
+    this.potGroup.position.set(
+      0,
+      0.09,
+      1.42
+    );
+    this.root.add(this.potGroup);
 
-  arrangePot(percent) {
-    const count = Math.max(3, Math.round(this.potChips.length * percent));
-    const stackCount = Math.ceil(count / 4);
-
-    this.potChips.forEach((chip, index) => {
-      chip.visible = index < count;
-      if (!chip.visible) return;
-
-      const stack = Math.floor(index / 4);
-      const level = index % 4;
-      chip.position.set(
-        (stack - (stackCount - 1) / 2) * 0.5,
-        level * 0.083,
-        0
+    for (let index = 0; index < 16; index += 1) {
+      const chip = this.createChip(
+        colors[index % colors.length]
       );
-      chip.rotation.y = index * 0.23;
-      chip.scale.setScalar(1);
-    });
-
-    const hiddenPlayerCount = Math.round(this.playerChips.length * percent);
-    this.playerChips.forEach((chip, index) => {
-      chip.visible = index >= hiddenPlayerCount;
-    });
-  }
-
-  async setWager(percent) {
-    this.arrangePot(percent);
-
-    this.potGroup.position.set(0, 0.1, 2.45);
-    this.potGroup.scale.setScalar(0.82);
-    this.potGroup.rotation.set(0, 0, 0);
-
-    await this.tween(430, (progress) => {
-      const eased = easeInOut(progress);
-      this.potGroup.position.z = 2.45 + (1.52 - 2.45) * eased;
-      this.potGroup.position.y = 0.1 + Math.sin(progress * Math.PI) * 0.46;
-      this.potGroup.scale.setScalar(0.82 + 0.18 * easeOut(progress));
-    });
-
-    this.potGroup.position.set(0, 0.09, 1.52);
-    this.potGroup.scale.setScalar(1);
-
-    if (percent === 1) {
-      this.fx.allIn = 1;
-      await this.tween(260, (progress) => {
-        this.potGroup.rotation.y = Math.sin(progress * Math.PI) * 0.07;
-      });
-      this.potGroup.rotation.y = 0;
+      chip.visible = false;
+      this.potGroup.add(chip);
+      this.potChips.push(chip);
     }
   }
 
-  async chooseAnswer(choice) {
-    this.resetZones();
+  buildProps() {
+    const dealerButton = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        0.28,
+        0.28,
+        0.075,
+        32
+      ),
+      this.standardMaterial(
+        0xd0a33d,
+        0.24,
+        0.82
+      )
+    );
+    dealerButton.position.set(
+      -3.0,
+      0.1,
+      -1.62
+    );
+    dealerButton.castShadow = true;
+    this.root.add(dealerButton);
 
-    const selected = this.zones[choice ? "true" : "false"];
-    selected.frame.material.opacity = 0.92;
-    selected.zone.scale.setScalar(1.05);
-    this.selectionLight.intensity = 13;
-    this.selectionLight.position.x = choice ? 2 : -2;
+    const discardTray = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        0.85,
+        0.12,
+        1.18
+      ),
+      this.standardMaterial(
+        0x171d19,
+        0.84,
+        0.04
+      )
+    );
+    discardTray.position.set(
+      2.95,
+      0.1,
+      -1.58
+    );
+    discardTray.rotation.y = -0.08;
+    discardTray.castShadow = true;
+    this.root.add(discardTray);
+  }
 
-    const targetX = choice ? 2 : -2;
-    const startX = this.potGroup.position.x;
-    const startZ = this.potGroup.position.z;
+  potTarget(index, count) {
+    const stacks = Math.ceil(count / 4);
+    const stack = Math.floor(index / 4);
+    const level = index % 4;
 
-    await this.tween(540, (progress) => {
+    return new THREE.Vector3(
+      (stack - (stacks - 1) / 2) * 0.46,
+      level * 0.082,
+      stack % 2 === 0 ? 0 : 0.045
+    );
+  }
+
+  playerSourceInPot(index) {
+    const sourceChip = this.playerChips[index];
+    return this.playerChipGroup.position
+      .clone()
+      .add(sourceChip.position)
+      .sub(this.potGroup.position);
+  }
+
+  async setWager(percent) {
+    const nextCount = Math.max(
+      1,
+      Math.round(this.potChips.length * percent)
+    );
+    const previousCount = this.currentPotCount;
+
+    this.potGroup.position.set(
+      0,
+      0.09,
+      1.42
+    );
+    this.potGroup.rotation.set(0, 0, 0);
+
+    const motions = [];
+
+    for (
+      let index = 0;
+      index < this.potChips.length;
+      index += 1
+    ) {
+      const potChip = this.potChips[index];
+      const playerChip = this.playerChips[index];
+
+      if (index < nextCount) {
+        const start =
+          index < previousCount
+            ? potChip.position.clone()
+            : this.playerSourceInPot(index);
+        const end = this.potTarget(
+          index,
+          nextCount
+        );
+
+        potChip.visible = true;
+        potChip.position.copy(start);
+        playerChip.visible = false;
+
+        motions.push({
+          chip: potChip,
+          start,
+          end,
+          returning: false
+        });
+      } else if (index < previousCount) {
+        const start = potChip.position.clone();
+        const end = this.playerSourceInPot(index);
+
+        potChip.visible = true;
+        playerChip.visible = false;
+
+        motions.push({
+          chip: potChip,
+          start,
+          end,
+          returning: true,
+          playerChip
+        });
+      } else {
+        potChip.visible = false;
+        playerChip.visible = true;
+      }
+    }
+
+    await this.tween(460, (progress) => {
       const eased = easeInOut(progress);
-      this.potGroup.position.x = startX + (targetX - startX) * eased;
-      this.potGroup.position.z = startZ + (0.78 - startZ) * eased;
-      this.potGroup.position.y = 0.08 + Math.sin(progress * Math.PI) * 0.42;
-      this.potGroup.rotation.z =
-        Math.sin(progress * Math.PI) * (choice ? -0.1 : 0.1);
+      const arc = Math.sin(progress * Math.PI) * 0.42;
+
+      motions.forEach((motion) => {
+        motion.chip.position.lerpVectors(
+          motion.start,
+          motion.end,
+          eased
+        );
+        motion.chip.position.y += arc;
+        motion.chip.rotation.y += 0.045;
+      });
     });
 
-    this.potGroup.position.y = 0.08;
-    this.potGroup.rotation.z = 0;
+    motions.forEach((motion) => {
+      motion.chip.position.copy(motion.end);
+
+      if (motion.returning) {
+        motion.chip.visible = false;
+        motion.playerChip.visible = true;
+      }
+    });
+
+    for (
+      let index = 0;
+      index < this.playerChips.length;
+      index += 1
+    ) {
+      this.playerChips[index].visible =
+        index >= nextCount;
+    }
+
+    this.currentPotCount = nextCount;
+
+    if (percent === 1) {
+      this.fx.allIn = 1;
+
+      await this.tween(260, (progress) => {
+        this.potGroup.rotation.y =
+          Math.sin(progress * Math.PI) * 0.08;
+      });
+
+      this.potGroup.rotation.y = 0;
+    }
   }
 
   resetZones() {
@@ -616,284 +1207,456 @@ export class HighStakesTable {
       zone.frame.material.opacity = 0;
       zone.zone.scale.setScalar(1);
     });
+
     this.selectionLight.intensity = 0;
   }
 
-  countdownSprite(text) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 512;
-    const context = canvas.getContext("2d");
+  async chooseAnswer(choice) {
+    this.resetZones();
 
-    const gradient = context.createRadialGradient(
-      180,
-      145,
-      20,
-      256,
-      256,
-      230
+    const selected =
+      this.zones[choice ? "true" : "false"];
+
+    selected.frame.material.opacity = 0.95;
+    selected.zone.scale.setScalar(1.045);
+
+    this.selectionLight.intensity = 13;
+    this.selectionLight.position.x =
+      choice ? 1.95 : -1.95;
+
+    this.dealerLookTarget =
+      choice ? -0.12 : 0.12;
+
+    const start = this.potGroup.position.clone();
+    const target = new THREE.Vector3(
+      choice ? 1.9 : -1.9,
+      0.09,
+      0.8
     );
-    gradient.addColorStop(0, "#fff2b6");
-    gradient.addColorStop(0.42, "#d6a536");
-    gradient.addColorStop(1, "#4a2d08");
 
-    context.fillStyle = gradient;
-    context.beginPath();
-    context.arc(256, 256, 218, 0, Math.PI * 2);
-    context.fill();
+    await this.tween(530, (progress) => {
+      const eased = easeInOut(progress);
 
-    context.strokeStyle = "rgba(255,255,255,.72)";
-    context.lineWidth = 8;
-    context.stroke();
+      this.potGroup.position.lerpVectors(
+        start,
+        target,
+        eased
+      );
+      this.potGroup.position.y +=
+        Math.sin(progress * Math.PI) * 0.38;
+      this.potGroup.rotation.z =
+        Math.sin(progress * Math.PI) *
+        (choice ? -0.09 : 0.09);
+    });
 
-    context.fillStyle = "#1d1405";
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.font =
-      text === "REVEAL"
-        ? "400 106px Bebas Neue"
-        : "400 238px Bebas Neue";
-    context.fillText(text, 256, 270);
+    this.potGroup.position.copy(target);
+    this.potGroup.rotation.z = 0;
+  }
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
+  async dealFact(fact) {
+    this.currentFact = fact;
+    this.resetZones();
 
-    const sprite = new THREE.Sprite(
-      new THREE.SpriteMaterial({
-        map: texture,
-        transparent: true,
-        depthTest: false
+    this.cardFlip.rotation.x = 0;
+    this.cardOuter.position.set(
+      0,
+      1.05,
+      -2.75
+    );
+    this.cardOuter.rotation.set(
+      0.2,
+      -0.02,
+      -0.045
+    );
+    this.cardOuter.scale.setScalar(0.72);
+
+    if (this.verdictMaterial.map) {
+      this.verdictMaterial.map.dispose();
+    }
+
+    this.verdictMaterial.map =
+      this.makeVerdictTexture(fact.answer);
+    this.verdictMaterial.needsUpdate = true;
+
+    const armStart =
+      this.dealerRightArm.group.rotation.z;
+    const forearmStart =
+      this.dealerRightArm.forearm.rotation.x;
+
+    await Promise.all([
+      this.tween(720, (progress) => {
+        const eased = easeOut(progress);
+
+        this.cardOuter.position.set(
+          0,
+          lerp(1.05, 0.2, eased),
+          lerp(-2.75, -0.48, eased)
+        );
+        this.cardOuter.rotation.x =
+          lerp(0.2, 0.11, eased);
+        this.cardOuter.rotation.z =
+          lerp(-0.045, 0, eased);
+        this.cardOuter.scale.setScalar(
+          lerp(0.72, 1, eased)
+        );
+      }),
+      this.tween(560, (progress) => {
+        const pulse =
+          Math.sin(progress * Math.PI);
+
+        this.dealerRightArm.group.rotation.z =
+          armStart - pulse * 0.2;
+        this.dealerRightArm.forearm.rotation.x =
+          forearmStart + pulse * 0.24;
       })
-    );
+    ]);
 
-    const base = text === "REVEAL" ? 2.72 : 1.82;
-    sprite.userData.baseScale = base;
-    sprite.scale.set(base, base, 1);
-    sprite.position.set(0, 2.45, -0.55);
-    return sprite;
+    this.cardOuter.position.set(
+      0,
+      0.2,
+      -0.48
+    );
+    this.cardOuter.rotation.set(
+      0.11,
+      0,
+      0
+    );
+    this.cardOuter.scale.setScalar(1);
+
+    this.dealerRightArm.group.rotation.z =
+      this.dealerRightArm.baseRotationZ;
+    this.dealerRightArm.forearm.rotation.x =
+      this.dealerRightArm.baseForearmX;
   }
 
   async dramaticCountdown(onBeat) {
     const values = ["3", "2", "1", "REVEAL"];
-    const startCamera = this.cameraAnchor.clone();
-    const endCamera = this.cameraHome.clone().add(
-      new THREE.Vector3(0, -0.16, -0.52)
-    );
+    const cameraStart = this.cameraAnchor.clone();
+    const cameraEnd = this.cameraHome
+      .clone()
+      .add(new THREE.Vector3(0, -0.12, -0.42));
 
-    this.key.intensity = 68;
-    this.fill.intensity = 12;
+    const torsoStart =
+      this.dealerTorso.position.z;
+    const armBase =
+      this.dealerRightArm.forearm.rotation.x;
 
-    for (let index = 0; index < values.length; index += 1) {
+    this.keyLight.intensity = 64;
+    this.fillLight.intensity = 16;
+
+    for (
+      let index = 0;
+      index < values.length;
+      index += 1
+    ) {
       const value = values[index];
-
-      if (this.counter) {
-        this.scene.remove(this.counter);
-        this.counter.material.map.dispose();
-        this.counter.material.dispose();
-      }
-
-      this.counter = this.countdownSprite(value);
-      this.scene.add(this.counter);
       onBeat?.(value);
 
-      const duration = value === "REVEAL" ? 760 : 690;
+      const duration =
+        value === "REVEAL" ? 720 : 650;
 
       await this.tween(duration, (progress) => {
-        const globalProgress = (index + progress) / values.length;
-        const cameraEase = easeInOut(globalProgress);
+        const globalProgress =
+          (index + progress) / values.length;
+        const cameraProgress =
+          easeInOut(globalProgress);
+        const beat =
+          Math.sin(progress * Math.PI);
 
         this.cameraAnchor.lerpVectors(
-          startCamera,
-          endCamera,
-          cameraEase
+          cameraStart,
+          cameraEnd,
+          cameraProgress
         );
 
-        const base = this.counter.userData.baseScale;
-        const entrance = Math.min(1, progress / 0.28);
-        const gentleScale = base * (0.9 + 0.1 * easeOut(entrance));
-        this.counter.scale.set(gentleScale, gentleScale, 1);
+        this.dealerTorso.position.z =
+          torsoStart + globalProgress * 0.08;
 
-        if (progress < 0.18) {
-          this.counter.material.opacity = progress / 0.18;
-        } else if (progress > 0.76) {
-          this.counter.material.opacity = 1 - (progress - 0.76) / 0.24;
-        } else {
-          this.counter.material.opacity = 1;
-        }
+        this.dealerHeadPitchTarget =
+          beat * 0.055;
+
+        this.dealerRightArm.forearm.rotation.x =
+          armBase + beat * 0.08;
 
         this.cardOuter.position.y =
-          0.2 + Math.sin(progress * Math.PI) * 0.025;
+          0.2 + beat * 0.018;
       });
     }
 
-    if (this.counter) {
-      this.scene.remove(this.counter);
-      this.counter.material.map.dispose();
-      this.counter.material.dispose();
-      this.counter = null;
-    }
-
-    this.cameraAnchor.copy(endCamera);
+    this.cameraAnchor.copy(cameraEnd);
+    this.dealerHeadPitchTarget = 0;
+    this.dealerTorso.position.z =
+      torsoStart + 0.08;
+    this.dealerRightArm.forearm.rotation.x =
+      armBase;
     this.cardOuter.position.y = 0.2;
   }
 
   async revealCard(correct) {
-    // The result card finishes in a readable "dealer presentation" pose:
-    // lifted above the rail, moved toward the player, and tilted at the camera.
-    const revealCamera = this.cameraHome.clone().add(
-      new THREE.Vector3(0, -0.22, -0.46)
+    const positionStart =
+      this.cardOuter.position.clone();
+    const rotationStart =
+      this.cardOuter.rotation.clone();
+    const scaleStart =
+      this.cardOuter.scale.x;
+
+    const cameraStart =
+      this.cameraAnchor.clone();
+    const focusStart =
+      this.focusAnchor.clone();
+
+    const cardTarget = new THREE.Vector3(
+      0,
+      1.43,
+      -1.88
     );
-    const revealFocus = new THREE.Vector3(0, 0.82, 0.18);
+    const cameraTarget =
+      this.cameraHome
+        .clone()
+        .add(new THREE.Vector3(0, -0.2, -0.48));
+    const focusTarget =
+      new THREE.Vector3(0, 1.0, -0.85);
 
-    const cameraStart = this.cameraAnchor.clone();
-    const focusStart = this.focusAnchor.clone();
-    const positionStart = this.cardOuter.position.clone();
-    const scaleStart = this.cardOuter.scale.x;
-
-    const resultPosition = new THREE.Vector3(0, 1.18, 0.12);
-    const resultScale = 1.12;
-    const resultTilt = 0.38;
+    const armStart =
+      this.dealerRightArm.group.rotation.z;
+    const forearmStart =
+      this.dealerRightArm.forearm.rotation.x;
 
     await Promise.all([
       this.tween(980, (progress) => {
         const eased = easeInOut(progress);
 
-        // Flip the card while lifting it into its final readable pose.
-        this.cardFlip.rotation.x = Math.PI * eased;
+        this.cardFlip.rotation.x =
+          Math.PI * eased;
+
         this.cardOuter.position.lerpVectors(
           positionStart,
-          resultPosition,
+          cardTarget,
           eased
         );
         this.cardOuter.position.y +=
-          Math.sin(progress * Math.PI) * 0.38;
+          Math.sin(progress * Math.PI) * 0.28;
 
-        this.cardOuter.rotation.x = resultTilt * eased;
+        this.cardOuter.rotation.x =
+          lerp(rotationStart.x, 0.72, eased);
         this.cardOuter.rotation.z =
-          Math.sin(progress * Math.PI) * -0.028;
+          Math.sin(progress * Math.PI) * -0.025;
 
         const scale =
-          scaleStart + (resultScale - scaleStart) * eased;
+          lerp(scaleStart, 0.98, eased);
         this.cardOuter.scale.setScalar(scale);
       }),
       this.tween(980, (progress) => {
         const eased = easeInOut(progress);
+        const reach =
+          Math.sin(progress * Math.PI);
 
-        this.leftHand.position.z =
-          -4.25 + 1.9 * Math.sin(eased * Math.PI);
-        this.leftHand.position.x =
-          -1.25 + 0.32 * Math.sin(eased * Math.PI);
+        this.dealerRightArm.group.rotation.z =
+          armStart - reach * 0.36;
+        this.dealerRightArm.forearm.rotation.x =
+          forearmStart + reach * 0.46;
+
+        this.dealerHeadPitchTarget =
+          lerp(0, -0.055, eased);
 
         this.cameraAnchor.lerpVectors(
           cameraStart,
-          revealCamera,
+          cameraTarget,
           eased
         );
         this.focusAnchor.lerpVectors(
           focusStart,
-          revealFocus,
+          focusTarget,
           eased
         );
       })
     ]);
 
-    // Hold the card above the rail until the player advances.
-    this.cardOuter.position.copy(resultPosition);
-    this.cardOuter.rotation.set(resultTilt, 0, 0);
-    this.cardOuter.scale.setScalar(resultScale);
+    this.cardOuter.position.copy(cardTarget);
+    this.cardOuter.rotation.set(0.72, 0, 0);
+    this.cardOuter.scale.setScalar(0.98);
 
-    this.leftHand.position.set(-1.25, 0.5, -4.25);
-    this.cameraAnchor.copy(revealCamera);
-    this.focusAnchor.copy(revealFocus);
+    this.cameraAnchor.copy(cameraTarget);
+    this.focusAnchor.copy(focusTarget);
+
+    this.dealerRightArm.group.rotation.z =
+      armStart - 0.18;
+    this.dealerRightArm.forearm.rotation.x =
+      forearmStart + 0.24;
+
+    this.dealerHeadPitchTarget =
+      correct ? -0.025 : 0.02;
 
     this.fx[correct ? "win" : "lose"] = 1;
-    this.key.color.setHex(correct ? 0xffd66e : 0xff5b5b);
-    this.fill.color.setHex(correct ? 0x65d995 : 0x701c1c);
+
+    this.keyLight.color.setHex(
+      correct ? 0xffd66e : 0xff5b5b
+    );
+    this.fillLight.color.setHex(
+      correct ? 0x65d995 : 0x742323
+    );
   }
 
   async resolveChips(correct) {
-    const start = this.potGroup.position.clone();
+    const start =
+      this.potGroup.position.clone();
 
     if (correct) {
       await this.tween(720, (progress) => {
         const eased = easeOut(progress);
-        this.potGroup.position.x = start.x * (1 - eased);
-        this.potGroup.position.z =
-          start.z + (3.0 - start.z) * eased;
-        this.potGroup.position.y =
-          0.08 + Math.sin(progress * Math.PI) * 0.54;
+
+        this.potGroup.position.lerpVectors(
+          start,
+          new THREE.Vector3(0, 0.09, 2.38),
+          eased
+        );
+        this.potGroup.position.y +=
+          Math.sin(progress * Math.PI) * 0.48;
         this.potGroup.rotation.y =
-          Math.sin(progress * Math.PI) * 0.42;
+          Math.sin(progress * Math.PI) * 0.38;
       });
     } else {
-      await this.tween(700, (progress) => {
-        const eased = easeInOut(progress);
-        this.potGroup.position.x = start.x * (1 - eased);
-        this.potGroup.position.z =
-          start.z + (-4.7 - start.z) * eased;
-        this.potGroup.position.y =
-          0.08 + Math.sin(progress * Math.PI) * 0.28;
-        this.rightHand.position.z =
-          -4.25 + 1.7 * Math.sin(progress * Math.PI);
-      });
+      const armStart =
+        this.dealerLeftArm.group.rotation.z;
+      const forearmStart =
+        this.dealerLeftArm.forearm.rotation.x;
+
+      await Promise.all([
+        this.tween(700, (progress) => {
+          const eased = easeInOut(progress);
+
+          this.potGroup.position.lerpVectors(
+            start,
+            new THREE.Vector3(0, 0.16, -2.85),
+            eased
+          );
+          this.potGroup.position.y +=
+            Math.sin(progress * Math.PI) * 0.24;
+        }),
+        this.tween(700, (progress) => {
+          const sweep =
+            Math.sin(progress * Math.PI);
+
+          this.dealerLeftArm.group.rotation.z =
+            armStart + sweep * 0.35;
+          this.dealerLeftArm.forearm.rotation.x =
+            forearmStart + sweep * 0.42;
+        })
+      ]);
+
+      this.dealerLeftArm.group.rotation.z =
+        armStart;
+      this.dealerLeftArm.forearm.rotation.x =
+        forearmStart;
     }
 
     this.potChips.forEach((chip) => {
       chip.visible = false;
-      chip.scale.setScalar(1);
     });
+
     this.playerChips.forEach((chip) => {
       chip.visible = true;
     });
 
-    this.potGroup.position.set(0, 0.09, 1.52);
+    this.currentPotCount = 0;
+    this.potGroup.position.set(
+      0,
+      0.09,
+      1.42
+    );
     this.potGroup.rotation.set(0, 0, 0);
-    this.rightHand.position.z = -4.25;
   }
 
   async resetRound() {
     this.resetZones();
-    this.key.color.setHex(0xffd77e);
-    this.fill.color.setHex(0x66bd91);
-    this.key.intensity = 76;
-    this.fill.intensity = 24;
-    this.red.intensity = 4;
+
+    this.keyLight.color.setHex(0xffdc8a);
+    this.fillLight.color.setHex(0x75d5a5);
+    this.keyLight.intensity = 74;
+    this.fillLight.intensity = 23;
 
     this.cameraAnchor.copy(this.cameraHome);
-    this.focusAnchor.set(0, 0.08, 0.45);
+    this.focusAnchor.set(0, 0.38, 0.15);
+
+    this.dealerLookTarget = 0;
+    this.dealerHeadPitchTarget = 0;
+    this.dealerTorso.position.z = 0;
+
+    this.dealerLeftArm.group.rotation.z =
+      this.dealerLeftArm.baseRotationZ;
+    this.dealerLeftArm.forearm.rotation.x =
+      this.dealerLeftArm.baseForearmX;
+
+    this.dealerRightArm.group.rotation.z =
+      this.dealerRightArm.baseRotationZ;
+    this.dealerRightArm.forearm.rotation.x =
+      this.dealerRightArm.baseForearmX;
 
     this.cardFlip.rotation.x = 0;
-    this.cardOuter.position.set(0, 0.22, -0.48);
-    this.cardOuter.rotation.set(0.12, 0, 0);
+    this.cardOuter.position.set(
+      0,
+      0.2,
+      -0.48
+    );
+    this.cardOuter.rotation.set(
+      0.11,
+      0,
+      0
+    );
     this.cardOuter.scale.setScalar(1);
 
-    this.potGroup.position.set(0, 0.09, 1.52);
+    this.potGroup.position.set(
+      0,
+      0.09,
+      1.42
+    );
     this.potGroup.rotation.set(0, 0, 0);
-    this.potGroup.scale.setScalar(1);
+
+    this.currentPotCount = 0;
 
     this.potChips.forEach((chip) => {
       chip.visible = false;
-      chip.scale.setScalar(1);
     });
+
     this.playerChips.forEach((chip) => {
       chip.visible = true;
     });
 
-    await this.tween(260, () => {});
+    await this.tween(220, () => {});
   }
 
   setSkin(skin) {
     const skins = {
-      "": { face: 0xffffff, side: 0xc2b495 },
-      blueprint: { face: 0x739bd0, side: 0x173d6b },
-      gold: { face: 0xc49a3d, side: 0x4b300a },
-      cyber: { face: 0x31536f, side: 0x08151f }
+      "": {
+        face: 0xffffff,
+        side: 0xbba982
+      },
+      blueprint: {
+        face: 0x7199cc,
+        side: 0x173d6b
+      },
+      gold: {
+        face: 0xc8a04b,
+        side: 0x4b300a
+      },
+      cyber: {
+        face: 0x31536f,
+        side: 0x08151f
+      }
     };
 
-    const selected = skins[skin] || skins[""];
-    this.frontMaterial.color.setHex(selected.face);
-    this.backMaterial.color.setHex(selected.face);
-    this.cardBaseMaterial.color.setHex(selected.side);
+    const selected =
+      skins[skin] || skins[""];
+
+    this.cardBackMaterial.color.setHex(
+      selected.face
+    );
+    this.verdictMaterial.color.setHex(
+      selected.face
+    );
+    this.cardBaseMaterial.color.setHex(
+      selected.side
+    );
   }
 
   tween(duration, update) {
@@ -913,31 +1676,44 @@ export class HighStakesTable {
         1,
         (now - tween.start) / tween.duration
       );
+
       tween.update(progress);
 
       if (progress >= 1) {
         tween.resolve();
         return false;
       }
+
       return true;
     });
   }
 
   resize() {
     const rect = this.canvas.getBoundingClientRect();
-    if (rect.width < 2 || rect.height < 2) return;
 
-    this.renderer.setSize(rect.width, rect.height, false);
-    this.camera.aspect = rect.width / rect.height;
-    this.camera.fov = this.camera.aspect < 0.72 ? 47 : 43;
+    if (rect.width < 2 || rect.height < 2) {
+      return;
+    }
+
+    this.renderer.setSize(
+      rect.width,
+      rect.height,
+      false
+    );
+
+    this.camera.aspect =
+      rect.width / rect.height;
+    this.camera.fov =
+      this.camera.aspect < 0.72 ? 47 : 43;
     this.camera.updateProjectionMatrix();
 
     const scale =
       this.camera.aspect < 0.62
-        ? 0.86
+        ? 0.84
         : this.camera.aspect < 0.78
-          ? 0.93
+          ? 0.92
           : 1;
+
     this.root.scale.setScalar(scale);
   }
 
@@ -946,33 +1722,74 @@ export class HighStakesTable {
 
     const now = performance.now();
     const elapsed = this.clock.getElapsedTime();
+
     this.updateTweens(now);
 
     this.fx.win *= 0.95;
     this.fx.lose *= 0.92;
     this.fx.allIn *= 0.96;
 
-    const desired = this.cameraAnchor.clone();
+    this.dealerLook = THREE.MathUtils.lerp(
+      this.dealerLook,
+      this.dealerLookTarget,
+      0.08
+    );
+    this.dealerHeadPitch =
+      THREE.MathUtils.lerp(
+        this.dealerHeadPitch,
+        this.dealerHeadPitchTarget,
+        0.1
+      );
+
+    this.dealer.position.y =
+      Math.sin(elapsed * 1.2) * 0.012;
+
+    this.dealerTorso.scale.y =
+      1 + Math.sin(elapsed * 1.2) * 0.006;
+
+    this.dealerHead.rotation.y =
+      this.dealerLook +
+      Math.sin(elapsed * 0.38) * 0.012;
+
+    this.dealerHead.rotation.x =
+      this.dealerHeadPitch +
+      Math.sin(elapsed * 0.65) * 0.006;
+
+    const desiredCamera =
+      this.cameraAnchor.clone();
+
     if (!this.tweens.length) {
-      desired.x += Math.sin(elapsed * 0.27) * 0.025;
-      desired.y += Math.sin(elapsed * 0.38) * 0.015;
+      desiredCamera.x +=
+        Math.sin(elapsed * 0.27) * 0.022;
+      desiredCamera.y +=
+        Math.sin(elapsed * 0.38) * 0.013;
     }
 
     if (this.fx.lose > 0.02) {
-      desired.x +=
-        Math.sin(elapsed * 62) * this.fx.lose * 0.045;
-      desired.y +=
-        Math.cos(elapsed * 58) * this.fx.lose * 0.022;
+      desiredCamera.x +=
+        Math.sin(elapsed * 62) *
+        this.fx.lose *
+        0.04;
+      desiredCamera.y +=
+        Math.cos(elapsed * 58) *
+        this.fx.lose *
+        0.02;
     }
 
-    this.camera.position.lerp(desired, 0.13);
+    this.camera.position.lerp(
+      desiredCamera,
+      0.13
+    );
     this.camera.lookAt(this.focusAnchor);
 
-    this.key.intensity =
-      76 +
+    this.keyLight.intensity =
+      74 +
       this.fx.win * 28 -
-      this.fx.lose * 10;
+      this.fx.lose * 8;
 
-    this.renderer.render(this.scene, this.camera);
+    this.renderer.render(
+      this.scene,
+      this.camera
+    );
   };
 }

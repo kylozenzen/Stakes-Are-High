@@ -512,12 +512,45 @@ button:disabled {
 .countdown-hud {
   position: absolute;
   z-index: 14;
-  top: 25%;
+  top: 30%;
   left: 50%;
   width: min(72%, 330px);
   transform: translateX(-50%);
   text-align: center;
   pointer-events: none;
+}
+
+.countdown-number {
+  min-height: 76px;
+  color: var(--gold);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: clamp(3.8rem, 15vw, 5.4rem);
+  line-height: 0.92;
+  letter-spacing: 0.035em;
+  text-shadow:
+    0 5px 0 rgba(0, 0, 0, 0.28),
+    0 0 26px rgba(243, 203, 99, 0.24);
+  transform: scale(1);
+  opacity: 1;
+}
+
+.countdown-number.beat {
+  animation: countdownBeat 620ms cubic-bezier(.2, .85, .25, 1);
+}
+
+@keyframes countdownBeat {
+  0% {
+    opacity: 0;
+    transform: translateY(7px) scale(0.91);
+  }
+  38% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0.92;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .countdown-hud small {
@@ -545,7 +578,7 @@ button:disabled {
 }
 
 .countdown-track span.running {
-  animation: countdownBar 3.05s linear forwards;
+  animation: countdownBar 2.95s linear forwards;
 }
 
 @keyframes countdownBar {
@@ -1004,5 +1037,29 @@ button:disabled {
   *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+
+/* Dealer upgrade */
+.game-view.is-resolving .claim-accessibility {
+  border-color: rgba(243, 203, 99, 0.26);
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(243, 203, 99, 0.05);
+}
+
+.game-view.is-resolving .game-controls {
+  pointer-events: none;
+}
+
+@media (max-height: 720px) {
+  .countdown-hud {
+    top: 29%;
+  }
+
+  .countdown-number {
+    min-height: 58px;
+    font-size: 3.55rem;
   }
 }

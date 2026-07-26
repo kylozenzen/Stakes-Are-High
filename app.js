@@ -402,7 +402,7 @@ import { HighStakesTable } from "./three-table.js";
 
     $("wagerPanel").classList.add("hidden");
     $("answerPanel").classList.add("hidden");
-    $("claimAccessibility").classList.add("minimized");
+    $("view-game").classList.add("is-resolving");
     $("countdownHud").classList.remove("hidden");
     $("countdownBar").classList.remove("running");
     void $("countdownBar").offsetWidth;
@@ -410,9 +410,14 @@ import { HighStakesTable } from "./three-table.js";
 
     try {
       await table.chooseAnswer(choice);
-      await table.dramaticCountdown(
-        (value) => sound.countdown(value)
-      );
+      await table.dramaticCountdown((value) => {
+        const countdownNumber = $("countdownNumber");
+        countdownNumber.textContent = value;
+        countdownNumber.classList.remove("beat");
+        void countdownNumber.offsetWidth;
+        countdownNumber.classList.add("beat");
+        sound.countdown(value);
+      });
 
       const correct = choice === state.fact.answer;
       const multiplier =
@@ -446,6 +451,7 @@ import { HighStakesTable } from "./three-table.js";
           : "";
 
       $("countdownHud").classList.add("hidden");
+      $("claimAccessibility").classList.add("minimized");
       $("resultStamp").textContent =
         state.fact.answer ? "TRUE" : "FALSE";
       $("resultStamp").style.color =
@@ -463,6 +469,7 @@ import { HighStakesTable } from "./three-table.js";
           : "Next claim";
       $("nextButton").classList.remove("hidden");
     } finally {
+      $("view-game").classList.remove("is-resolving");
       setInteractionLock(false);
     }
   }

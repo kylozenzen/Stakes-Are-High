@@ -75,28 +75,16 @@ This revision fixes the issues visible in the gameplay screenshots:
 - Buttons are locked during transitions to prevent double-tap animation glitches.
 
 
-## Card lift fix
+## Recommended dealer upgrade
 
-The answer card now finishes the reveal in a raised presentation pose:
+This pass consolidates the 3D presentation into one clear game flow:
 
-- lifted above the front rail
-- moved toward the player
-- tilted toward the camera
-- scaled up slightly
-- held in place until the next claim
-
-
-## Horizontal table geometry fix
-
-The prior build rotated the table's cylinder meshes by 90 degrees. That made the
-table render as a giant upright oval instead of a horizontal playing surface.
-
-This version:
-
-- keeps the table base and felt cylinders horizontal
-- moves all chips inside the rail
-- enlarges and separates the True/False zones
-- brings the camera closer to the playable felt
-- reduces the rail thickness
-- tilts the claim card toward the player
-- uses a brighter green felt and cleaner lighting
+- The clue appears only in the readable top panel.
+- The table card uses a decorative High Stakes Truth back instead of repeating the clue.
+- One connected, stylized dealer sits across the table.
+- Wager selections physically move the matching number of chips from the player's bank into the pot.
+- The dealer watches the selected True/False zone during the countdown.
+- The countdown remains 3 → 2 → 1 → REVEAL, but uses a gentle HTML scale/fade rather than repeated camera punches.
+- The dealer lifts and flips the verdict card toward the player.
+- The explanation replaces the clue in the top panel after the reveal.
+- On a win, chips return to the player. On a loss, the dealer sweeps them away.
