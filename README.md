@@ -88,3 +88,15 @@ This pass consolidates the 3D presentation into one clear game flow:
 - The dealer lifts and flips the verdict card toward the player.
 - The explanation replaces the clue in the top panel after the reveal.
 - On a win, chips return to the player. On a loss, the dealer sweeps them away.
+
+
+## Dealer visibility pass
+
+This pass specifically improves dealer readability and staging:
+
+- brightened the environment behind the dealer with a back wall, halo, and rim light
+- zoomed the camera out to show more of the full table/dealer composition
+- lowered and pushed the dealer farther back so the top clue panel does not cover as much of them
+- softened the vignette
+- slightly reduced the height of the top clue panel
+- fixed the flipped verdict card so the TRUE/FALSE reveal is no longer upside down

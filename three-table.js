@@ -43,14 +43,14 @@ export class HighStakesTable {
 
     this.cameraHome = new THREE.Vector3(
       0,
-      7.2,
-      10.4
+      7.85,
+      11.75
     );
     this.cameraAnchor = this.cameraHome.clone();
     this.focusAnchor = new THREE.Vector3(
       0,
-      0.38,
-      0.15
+      0.5,
+      -0.28
     );
 
     this.dealerLook = 0;
@@ -70,10 +70,10 @@ export class HighStakesTable {
       THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.2;
 
-    this.scene.background = new THREE.Color(0x03100b);
+    this.scene.background = new THREE.Color(0x082018);
     this.scene.fog = new THREE.FogExp2(
-      0x03100b,
-      0.038
+      0x082018,
+      0.024
     );
     this.camera.position.copy(this.cameraHome);
 
@@ -102,22 +102,22 @@ export class HighStakesTable {
 
   build() {
     this.ambient = new THREE.HemisphereLight(
-      0xc8e4d7,
-      0x140905,
-      2.6
+      0xd7efe3,
+      0x1b0d06,
+      2.95
     );
     this.scene.add(this.ambient);
 
     this.keyLight = new THREE.SpotLight(
       0xffdc8a,
-      74,
-      40,
+      80,
+      44,
       Math.PI / 5.1,
       0.5,
-      1.12
+      1.1
     );
-    this.keyLight.position.set(0, 10, 4.4);
-    this.keyLight.target.position.set(0, 0.1, -0.5);
+    this.keyLight.position.set(0, 10.6, 5.4);
+    this.keyLight.target.position.set(0, 0.65, -1.3);
     this.keyLight.castShadow = true;
     this.keyLight.shadow.mapSize.set(1024, 1024);
     this.scene.add(
@@ -126,19 +126,19 @@ export class HighStakesTable {
     );
 
     this.fillLight = new THREE.PointLight(
-      0x75d5a5,
-      23,
-      22
+      0x8fe4bc,
+      28,
+      26
     );
-    this.fillLight.position.set(-4.7, 3.1, 1.6);
+    this.fillLight.position.set(-4.9, 4.1, 1.8);
     this.scene.add(this.fillLight);
 
     this.warmLight = new THREE.PointLight(
-      0xd9783d,
-      5,
-      16
+      0xe08f49,
+      7,
+      18
     );
-    this.warmLight.position.set(4.2, 2.1, -1.8);
+    this.warmLight.position.set(4.6, 2.8, -2.2);
     this.scene.add(this.warmLight);
 
     this.selectionLight = new THREE.PointLight(
@@ -149,15 +149,75 @@ export class HighStakesTable {
     this.selectionLight.position.set(0, 1.35, 0.9);
     this.scene.add(this.selectionLight);
 
+    this.rimLight = new THREE.PointLight(
+      0x89f2c5,
+      14,
+      16
+    );
+    this.rimLight.position.set(0, 3.9, -5.5);
+    this.scene.add(this.rimLight);
+
     this.root = new THREE.Group();
     this.scene.add(this.root);
 
     this.buildTable();
     this.buildAnswerZones();
     this.buildDealer();
+    this.buildBackdrop();
     this.buildCard();
     this.buildChips();
     this.buildProps();
+  }
+
+
+  buildBackdrop() {
+    const wallMaterial = new THREE.MeshStandardMaterial({
+      color: 0x123126,
+      emissive: 0x215846,
+      emissiveIntensity: 0.42,
+      roughness: 0.88,
+      metalness: 0.02
+    });
+
+    const haloMaterial = new THREE.MeshBasicMaterial({
+      color: 0xf0ca72,
+      transparent: true,
+      opacity: 0.18,
+      depthWrite: false
+    });
+
+    const backWall = new THREE.Mesh(
+      new THREE.PlaneGeometry(7.2, 4.2),
+      wallMaterial
+    );
+    backWall.position.set(0, 1.95, -5.6);
+    this.root.add(backWall);
+
+    const halo = new THREE.Mesh(
+      new THREE.CircleGeometry(1.65, 40),
+      haloMaterial
+    );
+    halo.position.set(0, 2.15, -5.55);
+    this.root.add(halo);
+
+    const sideLeft = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.8, 2.7),
+      new THREE.MeshStandardMaterial({
+        color: 0x0e221a,
+        emissive: 0x102a20,
+        emissiveIntensity: 0.22,
+        roughness: 0.9,
+        metalness: 0.02
+      })
+    );
+    sideLeft.position.set(-3.65, 1.38, -4.95);
+    sideLeft.rotation.y = 0.56;
+    this.root.add(sideLeft);
+
+    const sideRight = sideLeft.clone();
+    sideRight.position.x = 3.65;
+    sideRight.rotation.y = -0.56;
+    this.root.add(sideRight);
   }
 
   buildTable() {
@@ -423,7 +483,7 @@ export class HighStakesTable {
 
   buildDealer() {
     this.dealer = new THREE.Group();
-    this.dealer.position.set(0, 0, -3.4);
+    this.dealer.position.set(0, -0.3, -4.1);
     this.root.add(this.dealer);
 
     const suitMaterial = this.standardMaterial(
@@ -768,7 +828,6 @@ export class HighStakesTable {
       this.verdictMaterial
     );
     this.cardBottom.rotation.x = Math.PI / 2;
-    this.cardBottom.rotation.z = Math.PI;
     this.cardBottom.position.y = -0.051;
     this.cardFlip.add(this.cardBottom);
 
@@ -1334,7 +1393,7 @@ export class HighStakesTable {
     const cameraStart = this.cameraAnchor.clone();
     const cameraEnd = this.cameraHome
       .clone()
-      .add(new THREE.Vector3(0, -0.12, -0.42));
+      .add(new THREE.Vector3(0, -0.08, -0.26));
 
     const torsoStart =
       this.dealerTorso.position.z;
@@ -1407,15 +1466,15 @@ export class HighStakesTable {
 
     const cardTarget = new THREE.Vector3(
       0,
-      1.43,
-      -1.88
+      1.18,
+      -1.75
     );
     const cameraTarget =
       this.cameraHome
         .clone()
-        .add(new THREE.Vector3(0, -0.2, -0.48));
+        .add(new THREE.Vector3(0, -0.05, -0.24));
     const focusTarget =
-      new THREE.Vector3(0, 1.0, -0.85);
+      new THREE.Vector3(0, 0.96, -1.28);
 
     const armStart =
       this.dealerRightArm.group.rotation.z;
@@ -1571,12 +1630,12 @@ export class HighStakesTable {
     this.resetZones();
 
     this.keyLight.color.setHex(0xffdc8a);
-    this.fillLight.color.setHex(0x75d5a5);
-    this.keyLight.intensity = 74;
-    this.fillLight.intensity = 23;
+    this.fillLight.color.setHex(0x8fe4bc);
+    this.keyLight.intensity = 80;
+    this.fillLight.intensity = 28;
 
     this.cameraAnchor.copy(this.cameraHome);
-    this.focusAnchor.set(0, 0.38, 0.15);
+    this.focusAnchor.set(0, 0.5, -0.28);
 
     this.dealerLookTarget = 0;
     this.dealerHeadPitchTarget = 0;
@@ -1783,8 +1842,8 @@ export class HighStakesTable {
     this.camera.lookAt(this.focusAnchor);
 
     this.keyLight.intensity =
-      74 +
-      this.fx.win * 28 -
+      80 +
+      this.fx.win * 26 -
       this.fx.lose * 8;
 
     this.renderer.render(
