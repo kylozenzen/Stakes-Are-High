@@ -1,10 +1,8 @@
-/* global THREE */
-(function(){
-"use strict";
+import * as THREE from "three";
 const out=t=>1-Math.pow(1-t,3), inout=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
-class HighStakesTable{
+export class HighStakesTable{
  constructor(canvas){
-  if(!canvas||!window.THREE)throw new Error("Three.js or canvas unavailable");
+  if(!canvas)throw new Error("Game canvas unavailable");
   this.canvas=canvas;this.scene=new THREE.Scene();this.camera=new THREE.PerspectiveCamera(39,1,.1,100);
   this.renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:"high-performance"});
   this.clock=new THREE.Clock();this.tweens=[];this.fx={win:0,lose:0,allIn:0};this.potChips=[];this.playerChips=[];
@@ -104,5 +102,3 @@ class HighStakesTable{
  resize(){const r=this.canvas.getBoundingClientRect();if(r.width<2||r.height<2)return;this.renderer.setSize(r.width,r.height,false);this.camera.aspect=r.width/r.height;this.camera.updateProjectionMatrix()}
  animate=()=>{requestAnimationFrame(this.animate);const now=performance.now(),t=this.clock.getElapsedTime();this.updateTweens(now);this.root.rotation.z=Math.sin(t*.32)*.005;this.fx.win*=.95;this.fx.lose*=.92;this.fx.allIn*=.96;if(!this.tweens.length){this.camera.position.x=Math.sin(t*.26)*.045;this.camera.position.y=6.5+Math.sin(t*.4)*.025;this.camera.position.z=8.9-this.fx.allIn*.35}if(this.fx.lose>.02){this.camera.position.x+=Math.sin(t*72)*this.fx.lose*.08;this.camera.position.y+=Math.cos(t*64)*this.fx.lose*.04}this.key.intensity=55+this.fx.win*32-this.fx.lose*12;this.renderer.render(this.scene,this.camera)}
 }
-window.HighStakesTable=HighStakesTable;
-})();

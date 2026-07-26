@@ -41,3 +41,20 @@ Difficulty:
 - `1` — Common, 1× base payout
 - `2` — Tricky, 1.25× base payout
 - `3` — Deep Cut, 1.5× base payout
+
+
+## Fixed Three.js loading
+
+This build uses the supported ES-module file through an import map:
+
+```html
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.module.js"
+  }
+}
+</script>
+```
+
+The earlier `build/three.min.js` URL returns 404 for this release and should not be restored.

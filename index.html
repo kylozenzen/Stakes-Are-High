@@ -9,10 +9,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.min.js" defer></script>
-  <script src="facts.js" defer></script>
-  <script src="three-table.js" defer></script>
-  <script src="app.js" defer></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.module.js"
+      }
+    }
+  </script>
+  <script type="module" src="./app.js"></script>
 </head>
 <body>
   <main id="app">
