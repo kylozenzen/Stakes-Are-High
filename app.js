@@ -1,36 +1,874 @@
+
 import { HST_FACTS } from "./facts.js";
 import { HighStakesTable } from "./three-table.js";
-(function(){
-"use strict";
-const $=id=>document.getElementById(id),views=[...document.querySelectorAll(".view")];
-const state={balance:1000,wager:.5,round:0,max:10,daily:false,deck:[],fact:null,active:false,correct:0,streak:0,best:0,risk:0,modifier:null,career:+localStorage.hst_career||0,tokens:+localStorage.hst_tokens||0,dailyStreak:+localStorage.hst_daily_streak||0,lastDaily:localStorage.hst_last_daily||"",name:localStorage.hst_name||"Player",avatar:localStorage.hst_avatar||"🎲",inventory:JSON.parse(localStorage.hst_inventory||'[""]'),skin:localStorage.hst_skin||"",sound:localStorage.hst_sound==="1",stats:JSON.parse(localStorage.hst_stats||'{"games":0,"wins":0,"correct":0,"bestBank":0,"allIns":0}')};
-let table,balanceRAF=0;
-class SFX{constructor(){this.ctx=null}init(){if(!this.ctx)this.ctx=new(AudioContext||webkitAudioContext)();if(this.ctx.state==="suspended")this.ctx.resume().catch(()=>{})}tone(f,d=.08,type="sine",v=.05,delay=0){if(!state.sound)return;this.init();const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(f,this.ctx.currentTime+delay);g.gain.setValueAtTime(v,this.ctx.currentTime+delay);g.gain.exponentialRampToValueAtTime(.001,this.ctx.currentTime+delay+d);o.connect(g);g.connect(this.ctx.destination);o.start(this.ctx.currentTime+delay);o.stop(this.ctx.currentTime+delay+d)}click(){this.tone(420)}chip(){this.tone(770,.05,"square",.025)}count(v){this.tone({3:430,2:560,1:710,REVEAL:980}[v]||500,v==="REVEAL"?.18:.1,"triangle",.07)}win(){[523,659,784,1047].forEach((f,i)=>this.tone(f,.34,"triangle",.075,i*.08))}lose(){this.tone(175,.45,"sawtooth",.09);this.tone(128,.52,"sawtooth",.065,.1)}}const sfx=new SFX();
-function openView(name){views.forEach(v=>v.classList.toggle("active",v.id===`view-${name}`));if(name==="home")refreshHome();if(name==="profile")renderProfile();if(name==="shop")renderShop();if(name==="stats")renderStats()}
-function localDate(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
-function seeded(seed){let h=2166136261;for(const c of seed){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return()=>{h+=0x6d2b79f5;let t=h;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
-function shuffle(a,r=Math.random){a=[...a];for(let i=a.length-1;i;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-const diff=d=>({1:1,2:1.25,3:1.5}[d]||1),diffName=d=>({1:"Common",2:"Tricky",3:"Deep Cut"}[d]||"Tricky"),streakMulti=()=>Math.min(2,1+Math.max(0,state.streak-1)*.15);
-function modifier(){if(state.round===4)return{name:"House Tax",text:"Minimum wager is 50%.",min:.5,bonus:1};if(state.round===7)return{name:"Double Trouble",text:"Payouts and losses are doubled.",min:.25,bonus:2};if(state.round===state.max)return{name:"Final Table",text:"The final claim pays an extra 50%.",min:.25,bonus:1.5};return null}
-async function startGame(daily){sfx.click();Object.assign(state,{daily,max:daily?5:10,balance:1000,wager:.5,round:0,correct:0,streak:0,best:0,risk:0,modifier:null});state.deck=shuffle(HST_FACTS,daily?seeded(localDate()):Math.random).slice(0,state.max);$("balanceDisplay").textContent="$1,000";$("streakDisplay").textContent="";openView("game");await table.resetRound();await nextRound()}
-async function nextRound(){if(state.balance<=0||state.round>=state.max)return finish();state.round++;state.fact=state.deck[state.round-1];state.active=false;state.modifier=modifier();$("roundDisplay").textContent=`${state.round}/${state.max}`;$("categoryDisplay").textContent=state.fact.category;$("difficultyDisplay").textContent=`${diffName(state.fact.difficulty)} · ${diff(state.fact.difficulty)}×`;$("claimText").textContent=state.fact.text;$("claimAccessibility").classList.remove("minimized");$("resultReadout").classList.add("hidden");$("countdownHud").classList.add("hidden");$("wagerPanel").classList.remove("hidden");$("answerPanel").classList.remove("hidden");$("nextButton").classList.add("hidden");$("modifierBanner").classList.toggle("hidden",!state.modifier);if(state.modifier){$("modifierName").textContent=state.modifier.name;$("modifierText").textContent=state.modifier.text;if(state.wager<state.modifier.min)state.wager=state.modifier.min}updateWager();await table.resetRound();table.setSkin(state.skin);await table.dealFact(state.fact);await table.setWager(state.wager);state.active=true}
-async function setWager(p){if(!state.active)return;state.wager=Math.max(p,state.modifier?.min||.25);sfx.chip();updateWager();state.active=false;await table.setWager(state.wager);state.active=true}
-function updateWager(){document.querySelectorAll("[data-wager]").forEach(b=>b.classList.toggle("active",+b.dataset.wager===state.wager));$("wagerDisplay").textContent=`$${Math.max(1,Math.floor(state.balance*state.wager)).toLocaleString("en-US")}`}
-async function answer(choice){if(!state.active)return;state.active=false;const wager=Math.max(1,Math.floor(state.balance*state.wager));state.risk+=state.wager;if(state.wager===1)state.stats.allIns++;$("wagerPanel").classList.add("hidden");$("answerPanel").classList.add("hidden");$("claimAccessibility").classList.add("minimized");$("countdownHud").classList.remove("hidden");$("countdownBar").classList.remove("running");void $("countdownBar").offsetWidth;$("countdownBar").classList.add("running");await table.chooseAnswer(choice);await table.dramaticCountdown(v=>sfx.count(v));const correct=choice===state.fact.answer,m=diff(state.fact.difficulty)*streakMulti()*(state.modifier?.bonus||1);if(correct){state.balance+=Math.floor(wager*m);state.correct++;state.streak++;state.best=Math.max(state.best,state.streak);sfx.win()}else{state.balance-=Math.min(state.balance,Math.floor(wager*(state.modifier?.bonus||1)));state.streak=0;sfx.lose()}await table.revealCard(correct);animateBalance(state.balance);$("streakDisplay").textContent=state.streak>=2?`Hot hand ×${streakMulti().toFixed(2)}`:"";$("countdownHud").classList.add("hidden");$("resultStamp").textContent=state.fact.answer?"TRUE":"FALSE";$("resultStamp").style.color=correct?"var(--green)":"var(--red)";$("explanationText").textContent=state.fact.explanation;$("resultReadout").classList.remove("hidden");await table.resolveChips(correct);$("nextButton").textContent=state.balance<=0||state.round>=state.max?"See results":"Next claim";$("nextButton").classList.remove("hidden")}
-function animateBalance(target){cancelAnimationFrame(balanceRAF);const el=$("balanceDisplay"),start=+el.textContent.replace(/\D/g,"")||0,t0=performance.now();const frame=now=>{const p=Math.min(1,(now-t0)/500),e=1-Math.pow(1-p,3),v=Math.round(start+(target-start)*e);el.textContent=`$${v.toLocaleString("en-US")}`;if(p<1)balanceRAF=requestAnimationFrame(frame)};balanceRAF=requestAnimationFrame(frame)}
-function finish(){const won=state.balance>0&&state.round>=state.max;state.stats.games++;state.stats.wins+=won?1:0;state.stats.correct+=state.correct;state.stats.bestBank=Math.max(state.stats.bestBank,state.balance);if(won){state.career+=state.balance;state.tokens+=Math.max(100,Math.floor(state.balance*.12));if(state.daily)dailyStreak()}persist();$("finalIcon").textContent=won?"🏆":"♠️";$("finalEyebrow").textContent=state.daily?"Daily table complete":"Run complete";$("finalTitle").textContent=won?title(state.balance):"The house won";$("finalSubtitle").textContent=won?"You walked away while you still could.":"One claim too far.";$("finalBank").textContent=`$${state.balance.toLocaleString("en-US")}`;$("finalCorrect").textContent=`${state.correct}/${state.max}`;$("finalBest").textContent=state.best;$("finalRisk").textContent=riskLabel();openView("result")}
-function dailyStreak(){const today=localDate(),d=new Date();d.setDate(d.getDate()-1);if(state.lastDaily===today)return;state.dailyStreak=state.lastDaily===localDate(d)?state.dailyStreak+1:1;state.lastDaily=today}
-function title(b){return b>=10000?"Untouchable":b>=6000?"Beat the house":b>=3000?"High roller":"Walked away"}function riskLabel(){const a=state.risk/Math.max(1,state.round);return a>.8?"Reckless":a>.55?"Bold":"Measured"}
-function persist(){localStorage.hst_career=state.career;localStorage.hst_tokens=state.tokens;localStorage.hst_daily_streak=state.dailyStreak;localStorage.hst_last_daily=state.lastDaily;localStorage.hst_stats=JSON.stringify(state.stats)}
-function share(){const text=`♠ HIGH STAKES TRUTH\n${state.daily?"DAILY TABLE":"ARCADE RUN"}\n${"🟩".repeat(state.correct)}${"⬛".repeat(Math.max(0,state.max-state.correct))}\nBank: $${state.balance.toLocaleString("en-US")}\nRisk: ${riskLabel()}`;navigator.clipboard?.writeText(text).then(()=>toast("Result copied")).catch(()=>prompt("Copy your result:",text))}
-function refreshHome(){$("homeName").textContent=state.name;$("homeAvatar").textContent=state.avatar;$("homeCareer").textContent=`$${state.career.toLocaleString("en-US")}`;$("homeStreak").textContent=state.dailyStreak;$("homeTokens").textContent=state.tokens.toLocaleString("en-US")}
-function renderProfile(){$("nameInput").value=state.name;$("profileStreak").textContent=state.dailyStreak;$("profileCareer").textContent=`$${state.career.toLocaleString("en-US")}`;const avatars=["🎲","♠️","🦁","🤖","🕵️","🦊","🐉","👑","🧠","🃏"];$("avatarGrid").innerHTML=avatars.map(a=>`<button class="${a===state.avatar?"selected":""}" data-avatar="${a}">${a}</button>`).join("");document.querySelectorAll("[data-avatar]").forEach(b=>b.onclick=()=>{state.avatar=b.dataset.avatar;localStorage.hst_avatar=state.avatar;renderProfile();refreshHome()})}
-const shop=[{id:"",name:"Classic Ivory",description:"The house standard.",cost:0},{id:"blueprint",name:"Blueprint",description:"For suspiciously organized gamblers.",cost:2500},{id:"gold",name:"High Roller Gold",description:"Tasteful? No. Powerful? Absolutely.",cost:7000},{id:"cyber",name:"Neon Protocol",description:"Truth, but make it illegal-looking.",cost:12000}];
-function renderShop(){$("shopTokens").textContent=state.tokens.toLocaleString("en-US");$("shopList").innerHTML=shop.map(i=>{const owned=state.inventory.includes(i.id),active=state.skin===i.id,can=state.tokens>=i.cost;return`<article class="shop-item"><div><h3>${i.name}</h3><p>${i.description}</p></div><button data-skin="${i.id}" data-cost="${i.cost}" class="${active?"active":""}" ${!owned&&!can?"disabled":""}>${active?"Active":owned?"Equip":i.cost.toLocaleString("en-US")}</button></article>`}).join("");document.querySelectorAll("[data-skin]").forEach(b=>b.onclick=()=>buySkin(b.dataset.skin,+b.dataset.cost))}
-function buySkin(id,cost){if(!state.inventory.includes(id)){if(state.tokens<cost)return;state.tokens-=cost;state.inventory.push(id);localStorage.hst_inventory=JSON.stringify(state.inventory)}state.skin=id;localStorage.hst_skin=id;localStorage.hst_tokens=state.tokens;table.setSkin(id);renderShop();refreshHome();sfx.chip()}
-function renderStats(){const data=[["Games",state.stats.games],["Wins",state.stats.wins],["Win rate",state.stats.games?Math.round(state.stats.wins/state.stats.games*100)+"%":"0%"],["Correct answers",state.stats.correct],["Best bank","$"+state.stats.bestBank.toLocaleString("en-US")],["All-ins",state.stats.allIns],["Career winnings","$"+state.career.toLocaleString("en-US")],["Daily streak",state.dailyStreak]];$("statsGrid").innerHTML=data.map(([k,v])=>`<div><small>${k}</small><strong>${v}</strong></div>`).join("")}
-function soundState(){$("soundState").textContent=state.sound?"On":"Off";$("soundState").style.color=state.sound?"var(--green)":"var(--muted)"}function toast(m){$("toast").textContent=m;$("toast").classList.remove("hidden");clearTimeout(toast.t);toast.t=setTimeout(()=>$("toast").classList.add("hidden"),1600)}
-function bind(){$("playButton").onclick=()=>startGame(false);$("dailyButton").onclick=()=>startGame(true);$("profileButton").onclick=()=>openView("profile");$("quitButton").onclick=()=>openView("home");$("falseButton").onclick=()=>answer(false);$("trueButton").onclick=()=>answer(true);$("nextButton").onclick=nextRound;$("replayButton").onclick=()=>startGame(state.daily);$("shareButton").onclick=share;document.querySelectorAll("[data-wager]").forEach(b=>b.onclick=()=>setWager(+b.dataset.wager));document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openView(b.dataset.open));document.querySelectorAll("[data-home]").forEach(b=>b.onclick=()=>openView("home"));$("nameInput").oninput=e=>{state.name=e.target.value||"Player";localStorage.hst_name=state.name;refreshHome()};$("soundToggle").onclick=()=>{state.sound=!state.sound;localStorage.hst_sound=state.sound?"1":"0";soundState();if(state.sound)sfx.click()}}
-function init(){if(!Array.isArray(HST_FACTS)||HST_FACTS.length<10)throw new Error("facts.js did not load");table=new HighStakesTable($("tableCanvas"));table.setSkin(state.skin);bind();refreshHome();soundState()}
-window.addEventListener("DOMContentLoaded",init);
+
+(function () {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+  const views = [...document.querySelectorAll(".view")];
+
+  const state = {
+    balance: 1000,
+    wager: 0.5,
+    round: 0,
+    max: 10,
+    daily: false,
+    deck: [],
+    fact: null,
+    active: false,
+    transitioning: false,
+    correct: 0,
+    streak: 0,
+    best: 0,
+    risk: 0,
+    modifier: null,
+    career: Number(localStorage.getItem("hst_career")) || 0,
+    tokens: Number(localStorage.getItem("hst_tokens")) || 0,
+    dailyStreak: Number(localStorage.getItem("hst_daily_streak")) || 0,
+    lastDaily: localStorage.getItem("hst_last_daily") || "",
+    name: localStorage.getItem("hst_name") || "Player",
+    avatar: localStorage.getItem("hst_avatar") || "🎲",
+    inventory: JSON.parse(
+      localStorage.getItem("hst_inventory") || '[""]'
+    ),
+    skin: localStorage.getItem("hst_skin") || "",
+    sound: localStorage.getItem("hst_sound") === "1",
+    stats: JSON.parse(
+      localStorage.getItem("hst_stats") ||
+      '{"games":0,"wins":0,"correct":0,"bestBank":0,"allIns":0}'
+    )
+  };
+
+  let table;
+  let balanceAnimationFrame = 0;
+
+  class SoundFX {
+    constructor() {
+      this.context = null;
+    }
+
+    init() {
+      if (!this.context) {
+        this.context = new (
+          window.AudioContext || window.webkitAudioContext
+        )();
+      }
+      if (this.context.state === "suspended") {
+        this.context.resume().catch(() => {});
+      }
+    }
+
+    tone(
+      frequency,
+      duration = 0.08,
+      type = "sine",
+      volume = 0.05,
+      delay = 0
+    ) {
+      if (!state.sound) return;
+      this.init();
+
+      const oscillator = this.context.createOscillator();
+      const gain = this.context.createGain();
+
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(
+        frequency,
+        this.context.currentTime + delay
+      );
+      gain.gain.setValueAtTime(
+        volume,
+        this.context.currentTime + delay
+      );
+      gain.gain.exponentialRampToValueAtTime(
+        0.001,
+        this.context.currentTime + delay + duration
+      );
+
+      oscillator.connect(gain);
+      gain.connect(this.context.destination);
+      oscillator.start(this.context.currentTime + delay);
+      oscillator.stop(
+        this.context.currentTime + delay + duration
+      );
+    }
+
+    click() { this.tone(420, 0.08); }
+    chip() { this.tone(770, 0.05, "square", 0.025); }
+
+    countdown(value) {
+      const frequency = {
+        "3": 430,
+        "2": 555,
+        "1": 690,
+        REVEAL: 900
+      }[value] || 500;
+
+      this.tone(
+        frequency,
+        value === "REVEAL" ? 0.17 : 0.09,
+        "triangle",
+        0.065
+      );
+    }
+
+    win() {
+      [523, 659, 784, 1047].forEach((frequency, index) => {
+        this.tone(
+          frequency,
+          0.32,
+          "triangle",
+          0.07,
+          index * 0.08
+        );
+      });
+    }
+
+    lose() {
+      this.tone(175, 0.42, "sawtooth", 0.08);
+      this.tone(128, 0.48, "sawtooth", 0.06, 0.1);
+    }
+  }
+
+  const sound = new SoundFX();
+
+  function openView(name) {
+    const targetId = `view-${name}`;
+    views.forEach((view) => {
+      view.classList.toggle("active", view.id === targetId);
+    });
+
+    if (name === "home") refreshHome();
+    if (name === "profile") renderProfile();
+    if (name === "shop") renderShop();
+    if (name === "stats") renderStats();
+  }
+
+  function setInteractionLock(locked) {
+    state.transitioning = locked;
+    $("quitButton").disabled = locked;
+    $("nextButton").disabled = locked;
+  }
+
+  function localDate(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function seeded(seed) {
+    let hash = 2166136261;
+
+    for (const character of seed) {
+      hash ^= character.charCodeAt(0);
+      hash = Math.imul(hash, 16777619);
+    }
+
+    return () => {
+      hash += 0x6d2b79f5;
+      let value = hash;
+      value = Math.imul(
+        value ^ (value >>> 15),
+        value | 1
+      );
+      value ^= value + Math.imul(
+        value ^ (value >>> 7),
+        value | 61
+      );
+      return (
+        ((value ^ (value >>> 14)) >>> 0) /
+        4294967296
+      );
+    };
+  }
+
+  function shuffle(items, random = Math.random) {
+    const result = [...items];
+
+    for (let index = result.length - 1; index > 0; index -= 1) {
+      const swapIndex = Math.floor(
+        random() * (index + 1)
+      );
+      [result[index], result[swapIndex]] = [
+        result[swapIndex],
+        result[index]
+      ];
+    }
+
+    return result;
+  }
+
+  function difficulty(value) {
+    return { 1: 1, 2: 1.25, 3: 1.5 }[value] || 1;
+  }
+
+  function difficultyName(value) {
+    return {
+      1: "Common",
+      2: "Tricky",
+      3: "Deep Cut"
+    }[value] || "Tricky";
+  }
+
+  function streakMultiplier() {
+    return Math.min(
+      2,
+      1 + Math.max(0, state.streak - 1) * 0.15
+    );
+  }
+
+  function currentModifier() {
+    if (state.round === 4) {
+      return {
+        name: "House Tax",
+        text: "Minimum wager is 50%.",
+        min: 0.5,
+        bonus: 1
+      };
+    }
+
+    if (state.round === 7) {
+      return {
+        name: "Double Trouble",
+        text: "Payouts and losses are doubled.",
+        min: 0.25,
+        bonus: 2
+      };
+    }
+
+    if (state.round === state.max) {
+      return {
+        name: "Final Table",
+        text: "The final claim pays an extra 50%.",
+        min: 0.25,
+        bonus: 1.5
+      };
+    }
+
+    return null;
+  }
+
+  async function startGame(daily) {
+    if (state.transitioning) return;
+
+    setInteractionLock(true);
+    sound.click();
+
+    Object.assign(state, {
+      daily,
+      max: daily ? 5 : 10,
+      balance: 1000,
+      wager: 0.5,
+      round: 0,
+      correct: 0,
+      streak: 0,
+      best: 0,
+      risk: 0,
+      modifier: null
+    });
+
+    state.deck = shuffle(
+      HST_FACTS,
+      daily ? seeded(localDate()) : Math.random
+    ).slice(0, state.max);
+
+    $("balanceDisplay").textContent = "$1,000";
+    $("streakDisplay").textContent = "";
+    openView("game");
+
+    try {
+      await loadNextRound();
+    } finally {
+      setInteractionLock(false);
+    }
+  }
+
+  async function loadNextRound() {
+    if (state.balance <= 0 || state.round >= state.max) {
+      finish();
+      return;
+    }
+
+    state.round += 1;
+    state.fact = state.deck[state.round - 1];
+    state.active = false;
+    state.modifier = currentModifier();
+
+    $("roundDisplay").textContent =
+      `${state.round}/${state.max}`;
+    $("categoryDisplay").textContent =
+      state.fact.category;
+    $("difficultyDisplay").textContent =
+      `${difficultyName(state.fact.difficulty)} · ` +
+      `${difficulty(state.fact.difficulty)}×`;
+    $("claimText").textContent = state.fact.text;
+
+    $("claimAccessibility").classList.remove("minimized");
+    $("resultReadout").classList.add("hidden");
+    $("countdownHud").classList.add("hidden");
+    $("wagerPanel").classList.remove("hidden");
+    $("answerPanel").classList.remove("hidden");
+    $("nextButton").classList.add("hidden");
+
+    $("modifierBanner").classList.toggle(
+      "hidden",
+      !state.modifier
+    );
+
+    if (state.modifier) {
+      $("modifierName").textContent =
+        state.modifier.name;
+      $("modifierText").textContent =
+        state.modifier.text;
+
+      if (state.wager < state.modifier.min) {
+        state.wager = state.modifier.min;
+      }
+    }
+
+    updateWagerButtons();
+    await table.resetRound();
+    table.setSkin(state.skin);
+    await table.dealFact(state.fact);
+    await table.setWager(state.wager);
+    state.active = true;
+  }
+
+  async function nextRound() {
+    if (state.transitioning) return;
+
+    setInteractionLock(true);
+    try {
+      await loadNextRound();
+    } finally {
+      setInteractionLock(false);
+    }
+  }
+
+  async function setWager(percent) {
+    if (!state.active || state.transitioning) return;
+
+    state.wager = Math.max(
+      percent,
+      state.modifier?.min || 0.25
+    );
+    updateWagerButtons();
+    sound.chip();
+
+    state.active = false;
+    setInteractionLock(true);
+
+    try {
+      await table.setWager(state.wager);
+    } finally {
+      state.active = true;
+      setInteractionLock(false);
+    }
+  }
+
+  function updateWagerButtons() {
+    document.querySelectorAll("[data-wager]").forEach((button) => {
+      button.classList.toggle(
+        "active",
+        Number(button.dataset.wager) === state.wager
+      );
+    });
+
+    const wager = Math.max(
+      1,
+      Math.floor(state.balance * state.wager)
+    );
+    $("wagerDisplay").textContent =
+      `$${wager.toLocaleString("en-US")}`;
+  }
+
+  async function answer(choice) {
+    if (!state.active || state.transitioning) return;
+
+    state.active = false;
+    setInteractionLock(true);
+
+    const wager = Math.max(
+      1,
+      Math.floor(state.balance * state.wager)
+    );
+
+    state.risk += state.wager;
+    if (state.wager === 1) {
+      state.stats.allIns += 1;
+    }
+
+    $("wagerPanel").classList.add("hidden");
+    $("answerPanel").classList.add("hidden");
+    $("claimAccessibility").classList.add("minimized");
+    $("countdownHud").classList.remove("hidden");
+    $("countdownBar").classList.remove("running");
+    void $("countdownBar").offsetWidth;
+    $("countdownBar").classList.add("running");
+
+    try {
+      await table.chooseAnswer(choice);
+      await table.dramaticCountdown(
+        (value) => sound.countdown(value)
+      );
+
+      const correct = choice === state.fact.answer;
+      const multiplier =
+        difficulty(state.fact.difficulty) *
+        streakMultiplier() *
+        (state.modifier?.bonus || 1);
+
+      if (correct) {
+        state.balance += Math.floor(wager * multiplier);
+        state.correct += 1;
+        state.streak += 1;
+        state.best = Math.max(state.best, state.streak);
+        sound.win();
+      } else {
+        state.balance -= Math.min(
+          state.balance,
+          Math.floor(
+            wager * (state.modifier?.bonus || 1)
+          )
+        );
+        state.streak = 0;
+        sound.lose();
+      }
+
+      await table.revealCard(correct);
+      animateBalance(state.balance);
+
+      $("streakDisplay").textContent =
+        state.streak >= 2
+          ? `Hot hand ×${streakMultiplier().toFixed(2)}`
+          : "";
+
+      $("countdownHud").classList.add("hidden");
+      $("resultStamp").textContent =
+        state.fact.answer ? "TRUE" : "FALSE";
+      $("resultStamp").style.color =
+        correct ? "var(--green)" : "var(--red)";
+      $("explanationText").textContent =
+        state.fact.explanation;
+      $("resultReadout").classList.remove("hidden");
+
+      await table.resolveChips(correct);
+
+      $("nextButton").textContent =
+        state.balance <= 0 ||
+        state.round >= state.max
+          ? "See results"
+          : "Next claim";
+      $("nextButton").classList.remove("hidden");
+    } finally {
+      setInteractionLock(false);
+    }
+  }
+
+  function animateBalance(target) {
+    cancelAnimationFrame(balanceAnimationFrame);
+
+    const element = $("balanceDisplay");
+    const start =
+      Number(element.textContent.replace(/\D/g, "")) || 0;
+    const startedAt = performance.now();
+
+    const frame = (now) => {
+      const progress = Math.min(
+        1,
+        (now - startedAt) / 500
+      );
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(
+        start + (target - start) * eased
+      );
+
+      element.textContent =
+        `$${current.toLocaleString("en-US")}`;
+
+      if (progress < 1) {
+        balanceAnimationFrame =
+          requestAnimationFrame(frame);
+      }
+    };
+
+    balanceAnimationFrame = requestAnimationFrame(frame);
+  }
+
+  function finish() {
+    const won =
+      state.balance > 0 &&
+      state.round >= state.max;
+
+    state.stats.games += 1;
+    state.stats.wins += won ? 1 : 0;
+    state.stats.correct += state.correct;
+    state.stats.bestBank = Math.max(
+      state.stats.bestBank,
+      state.balance
+    );
+
+    if (won) {
+      state.career += state.balance;
+      state.tokens += Math.max(
+        100,
+        Math.floor(state.balance * 0.12)
+      );
+      if (state.daily) updateDailyStreak();
+    }
+
+    persist();
+
+    $("finalIcon").textContent = won ? "🏆" : "♠️";
+    $("finalEyebrow").textContent =
+      state.daily
+        ? "Daily table complete"
+        : "Run complete";
+    $("finalTitle").textContent =
+      won ? titleForBalance(state.balance) : "The house won";
+    $("finalSubtitle").textContent =
+      won
+        ? "You walked away while you still could."
+        : "One claim too far.";
+    $("finalBank").textContent =
+      `$${state.balance.toLocaleString("en-US")}`;
+    $("finalCorrect").textContent =
+      `${state.correct}/${state.max}`;
+    $("finalBest").textContent = state.best;
+    $("finalRisk").textContent = riskLabel();
+
+    openView("result");
+  }
+
+  function updateDailyStreak() {
+    const today = localDate();
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(
+      yesterdayDate.getDate() - 1
+    );
+
+    if (state.lastDaily === today) return;
+
+    state.dailyStreak =
+      state.lastDaily === localDate(yesterdayDate)
+        ? state.dailyStreak + 1
+        : 1;
+    state.lastDaily = today;
+  }
+
+  function titleForBalance(balance) {
+    if (balance >= 10000) return "Untouchable";
+    if (balance >= 6000) return "Beat the house";
+    if (balance >= 3000) return "High roller";
+    return "Walked away";
+  }
+
+  function riskLabel() {
+    const average =
+      state.risk / Math.max(1, state.round);
+    if (average > 0.8) return "Reckless";
+    if (average > 0.55) return "Bold";
+    return "Measured";
+  }
+
+  function persist() {
+    localStorage.setItem("hst_career", state.career);
+    localStorage.setItem("hst_tokens", state.tokens);
+    localStorage.setItem(
+      "hst_daily_streak",
+      state.dailyStreak
+    );
+    localStorage.setItem(
+      "hst_last_daily",
+      state.lastDaily
+    );
+    localStorage.setItem(
+      "hst_stats",
+      JSON.stringify(state.stats)
+    );
+  }
+
+  function share() {
+    const text = [
+      "♠ HIGH STAKES TRUTH",
+      state.daily ? "DAILY TABLE" : "ARCADE RUN",
+      `${"🟩".repeat(state.correct)}` +
+        `${"⬛".repeat(
+          Math.max(0, state.max - state.correct)
+        )}`,
+      `Bank: $${state.balance.toLocaleString("en-US")}`,
+      `Risk: ${riskLabel()}`
+    ].join("\n");
+
+    navigator.clipboard
+      ?.writeText(text)
+      .then(() => toast("Result copied"))
+      .catch(() => window.prompt("Copy your result:", text));
+  }
+
+  function refreshHome() {
+    $("homeName").textContent = state.name;
+    $("homeAvatar").textContent = state.avatar;
+    $("homeCareer").textContent =
+      `$${state.career.toLocaleString("en-US")}`;
+    $("homeStreak").textContent = state.dailyStreak;
+    $("homeTokens").textContent =
+      state.tokens.toLocaleString("en-US");
+  }
+
+  function renderProfile() {
+    $("nameInput").value = state.name;
+    $("profileStreak").textContent =
+      state.dailyStreak;
+    $("profileCareer").textContent =
+      `$${state.career.toLocaleString("en-US")}`;
+
+    const avatars = [
+      "🎲",
+      "♠️",
+      "🦁",
+      "🤖",
+      "🕵️",
+      "🦊",
+      "🐉",
+      "👑",
+      "🧠",
+      "🃏"
+    ];
+
+    $("avatarGrid").innerHTML = avatars
+      .map(
+        (avatar) =>
+          `<button class="${avatar === state.avatar ? "selected" : ""}" data-avatar="${avatar}">${avatar}</button>`
+      )
+      .join("");
+
+    document.querySelectorAll("[data-avatar]").forEach((button) => {
+      button.onclick = () => {
+        state.avatar = button.dataset.avatar;
+        localStorage.setItem(
+          "hst_avatar",
+          state.avatar
+        );
+        renderProfile();
+        refreshHome();
+      };
+    });
+  }
+
+  const shop = [
+    {
+      id: "",
+      name: "Classic Ivory",
+      description: "The house standard.",
+      cost: 0
+    },
+    {
+      id: "blueprint",
+      name: "Blueprint",
+      description: "For suspiciously organized gamblers.",
+      cost: 2500
+    },
+    {
+      id: "gold",
+      name: "High Roller Gold",
+      description: "Tasteful? No. Powerful? Absolutely.",
+      cost: 7000
+    },
+    {
+      id: "cyber",
+      name: "Neon Protocol",
+      description: "Truth, but make it illegal-looking.",
+      cost: 12000
+    }
+  ];
+
+  function renderShop() {
+    $("shopTokens").textContent =
+      state.tokens.toLocaleString("en-US");
+
+    $("shopList").innerHTML = shop
+      .map((item) => {
+        const owned = state.inventory.includes(item.id);
+        const active = state.skin === item.id;
+        const canBuy = state.tokens >= item.cost;
+
+        return `
+          <article class="shop-item">
+            <div>
+              <h3>${item.name}</h3>
+              <p>${item.description}</p>
+            </div>
+            <button
+              data-skin="${item.id}"
+              data-cost="${item.cost}"
+              class="${active ? "active" : ""}"
+              ${!owned && !canBuy ? "disabled" : ""}
+            >
+              ${
+                active
+                  ? "Active"
+                  : owned
+                    ? "Equip"
+                    : item.cost.toLocaleString("en-US")
+              }
+            </button>
+          </article>
+        `;
+      })
+      .join("");
+
+    document.querySelectorAll("[data-skin]").forEach((button) => {
+      button.onclick = () => {
+        buySkin(
+          button.dataset.skin,
+          Number(button.dataset.cost)
+        );
+      };
+    });
+  }
+
+  function buySkin(id, cost) {
+    if (!state.inventory.includes(id)) {
+      if (state.tokens < cost) return;
+      state.tokens -= cost;
+      state.inventory.push(id);
+      localStorage.setItem(
+        "hst_inventory",
+        JSON.stringify(state.inventory)
+      );
+    }
+
+    state.skin = id;
+    localStorage.setItem("hst_skin", id);
+    localStorage.setItem(
+      "hst_tokens",
+      state.tokens
+    );
+
+    table.setSkin(id);
+    renderShop();
+    refreshHome();
+    sound.chip();
+  }
+
+  function renderStats() {
+    const data = [
+      ["Games", state.stats.games],
+      ["Wins", state.stats.wins],
+      [
+        "Win rate",
+        state.stats.games
+          ? `${Math.round(
+              (state.stats.wins / state.stats.games) * 100
+            )}%`
+          : "0%"
+      ],
+      ["Correct answers", state.stats.correct],
+      [
+        "Best bank",
+        `$${state.stats.bestBank.toLocaleString("en-US")}`
+      ],
+      ["All-ins", state.stats.allIns],
+      [
+        "Career winnings",
+        `$${state.career.toLocaleString("en-US")}`
+      ],
+      ["Daily streak", state.dailyStreak]
+    ];
+
+    $("statsGrid").innerHTML = data
+      .map(
+        ([key, value]) =>
+          `<div><small>${key}</small><strong>${value}</strong></div>`
+      )
+      .join("");
+  }
+
+  function updateSoundState() {
+    $("soundState").textContent =
+      state.sound ? "On" : "Off";
+    $("soundState").style.color =
+      state.sound ? "var(--green)" : "var(--muted)";
+  }
+
+  function toast(message) {
+    $("toast").textContent = message;
+    $("toast").classList.remove("hidden");
+    clearTimeout(toast.timeout);
+    toast.timeout = setTimeout(() => {
+      $("toast").classList.add("hidden");
+    }, 1600);
+  }
+
+  function bind() {
+    $("playButton").onclick = () => startGame(false);
+    $("dailyButton").onclick = () => startGame(true);
+    $("profileButton").onclick = () => openView("profile");
+    $("quitButton").onclick = () => {
+      if (!state.transitioning) openView("home");
+    };
+    $("falseButton").onclick = () => answer(false);
+    $("trueButton").onclick = () => answer(true);
+    $("nextButton").onclick = nextRound;
+    $("replayButton").onclick = () =>
+      startGame(state.daily);
+    $("shareButton").onclick = share;
+
+    document.querySelectorAll("[data-wager]").forEach((button) => {
+      button.onclick = () =>
+        setWager(Number(button.dataset.wager));
+    });
+
+    document.querySelectorAll("[data-open]").forEach((button) => {
+      button.onclick = () =>
+        openView(button.dataset.open);
+    });
+
+    document.querySelectorAll("[data-home]").forEach((button) => {
+      button.onclick = () => openView("home");
+    });
+
+    $("nameInput").oninput = (event) => {
+      state.name = event.target.value || "Player";
+      localStorage.setItem("hst_name", state.name);
+      refreshHome();
+    };
+
+    $("soundToggle").onclick = () => {
+      state.sound = !state.sound;
+      localStorage.setItem(
+        "hst_sound",
+        state.sound ? "1" : "0"
+      );
+      updateSoundState();
+      if (state.sound) sound.click();
+    };
+  }
+
+  async function initialize() {
+    if (
+      !Array.isArray(HST_FACTS) ||
+      HST_FACTS.length < 10
+    ) {
+      throw new Error("facts.js did not load");
+    }
+
+    if (document.fonts?.ready) {
+      await document.fonts.ready;
+    }
+
+    table = new HighStakesTable($("tableCanvas"));
+    table.setSkin(state.skin);
+    bind();
+    refreshHome();
+    updateSoundState();
+  }
+
+  window.addEventListener(
+    "DOMContentLoaded",
+    initialize
+  );
 })();

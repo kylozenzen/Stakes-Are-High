@@ -58,3 +58,18 @@ This build uses the supported ES-module file through an import map:
 ```
 
 The earlier `build/three.min.js` URL returns 404 for this release and should not be restored.
+
+
+## Clarity pass changes
+
+This revision fixes the issues visible in the gameplay screenshots:
+
+- The card is now built with a thin horizontal base and separate top/bottom texture planes. The claim and reveal are no longer mapped onto the card edge.
+- The camera sits farther back and the table automatically scales on narrow screens.
+- Lighting, felt, answer zones, and chip stacks are brighter and easier to distinguish.
+- Wager chips are arranged into clean stacks instead of overlapping in a loose pile.
+- Controls are shorter and include additional height-based responsive rules.
+- The claim and explanation panels have stronger contrast and bounded heights.
+- The countdown uses one continuous camera push across `3 → 2 → 1 → REVEAL`.
+- Each countdown marker has only a subtle scale-in rather than a full-screen zoom punch.
+- Buttons are locked during transitions to prevent double-tap animation glitches.
