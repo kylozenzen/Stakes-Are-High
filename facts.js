@@ -15,7 +15,8 @@
   rewrite it before adding it to the game.
 */
 
-window HST_FACTS = [
+window.HST_FACTS = [
+
   // ---------- ORIGINAL FACTS ----------
   {text:"Octopuses have three hearts.",answer:true,explanation:"Two hearts pump blood to the gills, while a third circulates blood through the rest of the body.",category:"Animals",difficulty:1},
   {text:"The Great Wall of China is visible from the Moon with the naked eye.",answer:false,explanation:"It is far too narrow to be seen from the Moon without aid.",category:"World",difficulty:1},
