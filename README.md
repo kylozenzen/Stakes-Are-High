@@ -84,3 +84,19 @@ The answer card now finishes the reveal in a raised presentation pose:
 - tilted toward the camera
 - scaled up slightly
 - held in place until the next claim
+
+
+## Horizontal table geometry fix
+
+The prior build rotated the table's cylinder meshes by 90 degrees. That made the
+table render as a giant upright oval instead of a horizontal playing surface.
+
+This version:
+
+- keeps the table base and felt cylinders horizontal
+- moves all chips inside the rail
+- enlarges and separates the True/False zones
+- brings the camera closer to the playable felt
+- reduces the rail thickness
+- tilts the claim card toward the player
+- uses a brighter green felt and cleaner lighting
