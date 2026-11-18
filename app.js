@@ -23,6 +23,7 @@ import { HighStakesTable } from "./three-table.js";
     best: 0,
     risk: 0,
     modifier: null,
+    history: [],
     career: Number(localStorage.getItem("hst_career")) || 0,
     tokens: Number(localStorage.getItem("hst_tokens")) || 0,
     dailyStreak: Number(localStorage.getItem("hst_daily_streak")) || 0,
@@ -133,11 +134,23 @@ import { HighStakesTable } from "./three-table.js";
 
   const sound = new SoundFX();
 
+  // Opaque screens hide the table, so stop rendering it there.
+  const OPAQUE_VIEWS = new Set(["profile", "shop", "stats"]);
+
+  function setScene(name) {
+    if (!table) return;
+    table.setPaused(OPAQUE_VIEWS.has(name));
+    if (name === "home" || name === "settings" || name === "howto") {
+      table.setMode("home");
+    }
+  }
+
   function openView(name) {
     const targetId = `view-${name}`;
     views.forEach((view) => {
       view.classList.toggle("active", view.id === targetId);
     });
+    setScene(name);
 
     if (name === "home") refreshHome();
     if (name === "profile") renderProfile();
@@ -266,7 +279,8 @@ import { HighStakesTable } from "./three-table.js";
       streak: 0,
       best: 0,
       risk: 0,
-      modifier: null
+      modifier: null,
+      history: []
     });
 
     state.deck = shuffle(
@@ -276,6 +290,7 @@ import { HighStakesTable } from "./three-table.js";
 
     $("balanceDisplay").textContent = "$1,000";
     $("streakDisplay").textContent = "";
+    table.setMode("game");
     openView("game");
 
     try {
@@ -437,6 +452,7 @@ import { HighStakesTable } from "./three-table.js";
       });
 
       const correct = choice === state.fact.answer;
+      state.history.push(correct);
       const multiplier =
         difficulty(state.fact.difficulty) *
         streakMultiplier() *
@@ -545,7 +561,17 @@ import { HighStakesTable } from "./three-table.js";
 
     persist();
 
-    $("finalIcon").textContent = won ? "🏆" : "♠️";
+    $("finalIcon").innerHTML = `<span>${won ? "WIN" : "BUST"}</span>`;
+    $("finalIcon").classList.toggle("bust", !won);
+    $("houseQuote").textContent = `“${houseLine(won, state.balance)}”`;
+    $("finalRounds").innerHTML = Array.from(
+      { length: state.max },
+      (_, index) => {
+        const result = state.history[index];
+        const label = result === true ? "Correct" : result === false ? "Wrong" : "Not played";
+        return `<i class="${result === true ? "win" : result === false ? "loss" : ""}" title="Round ${index + 1}: ${label}"></i>`;
+      }
+    ).join("");
     $("finalEyebrow").textContent =
       state.daily
         ? "Daily table complete"
@@ -564,6 +590,221 @@ import { HighStakesTable } from "./three-table.js";
     $("finalRisk").textContent = riskLabel();
 
     openView("result");
+    table.setMode("result", won ? "beaten" : "smug");
+  }
+
+  const HOUSE_LINES = {
+    win: [
+      "Beginner's luck.",
+      "Fine. Take it. This time.",
+      "Enjoy it. The House remembers.",
+      "Cash out while you still can.",
+      "Don't get used to this.",
+      "Even a broken clock is right twice a day."
+    ],
+    bigWin: [
+      "...I may need a new job.",
+      "Security has been notified. Kidding. Mostly.",
+      "Untouchable? We'll see tomorrow."
+    ],
+    loss: [
+      "The House always wins.",
+      "Thank you for your donation.",
+      "Confidence is currency. You're broke.",
+      "Same time tomorrow?",
+      "I'll put it toward a new mask.",
+      "Bold. Wrong, but bold."
+    ]
+  };
+
+  function houseLine(won, balance) {
+    const pool = !won
+      ? HOUSE_LINES.loss
+      : balance >= 6000
+        ? HOUSE_LINES.bigWin
+        : HOUSE_LINES.win;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function roundRect(context, x, y, width, height, radius) {
+    context.beginPath();
+    context.moveTo(x + radius, y);
+    context.arcTo(x + width, y, x + width, y + height, radius);
+    context.arcTo(x + width, y + height, x, y + height, radius);
+    context.arcTo(x, y + height, x, y, radius);
+    context.arcTo(x, y, x + width, y, radius);
+    context.closePath();
+  }
+
+  function drawChip(context, x, y, radius, face, spot, label, ink) {
+    context.save();
+    context.translate(x, y);
+    for (let index = 0; index < 12; index += 1) {
+      context.beginPath();
+      context.moveTo(0, 0);
+      context.arc(0, 0, radius, (index * Math.PI) / 6, ((index + 0.5) * Math.PI) / 6);
+      context.fillStyle = index % 2 ? face : spot;
+      context.fill();
+    }
+    context.beginPath();
+    context.arc(0, 0, radius * 0.72, 0, Math.PI * 2);
+    context.fillStyle = face;
+    context.fill();
+    context.lineWidth = radius * 0.06;
+    context.strokeStyle = spot;
+    context.stroke();
+    if (label) {
+      context.fillStyle = ink;
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.font = `${Math.round(radius * 0.62)}px "Bebas Neue", sans-serif`;
+      context.fillText(label, 0, radius * 0.04);
+    }
+    context.restore();
+  }
+
+  // A 1080x1350 card sized for Stories and feeds.
+  async function renderShareCard() {
+    try {
+      await Promise.all([
+        document.fonts.load('150px "Bebas Neue"'),
+        document.fonts.load('800 120px "JetBrains Mono"'),
+        document.fonts.load('italic 700 36px Inter'),
+        document.fonts.load('900 28px Inter')
+      ]);
+    } catch (_) {}
+
+    const W = 1080;
+    const H = 1350;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const x = canvas.getContext("2d");
+    const won = state.balance > 0 && state.round >= state.max;
+
+    const felt = x.createRadialGradient(W / 2, H * 0.42, 60, W / 2, H * 0.5, H * 0.75);
+    felt.addColorStop(0, "#1f7a4d");
+    felt.addColorStop(0.55, "#0d3a27");
+    felt.addColorStop(1, "#03130c");
+    x.fillStyle = felt;
+    x.fillRect(0, 0, W, H);
+
+    x.globalAlpha = 0.07;
+    for (let index = 0; index < 2600; index += 1) {
+      x.fillStyle = index % 2 ? "#000" : "#fff";
+      x.fillRect(Math.random() * W, Math.random() * H, 2, 2);
+    }
+    x.globalAlpha = 1;
+
+    x.strokeStyle = "#f3cb63";
+    x.lineWidth = 8;
+    roundRect(x, 36, 36, W - 72, H - 72, 34);
+    x.stroke();
+    x.strokeStyle = "rgba(243,203,99,.35)";
+    x.lineWidth = 2;
+    roundRect(x, 56, 56, W - 112, H - 112, 24);
+    x.stroke();
+
+    drawChip(x, W / 2, 170, 66, "#0f2b20", "#f3cb63", "HST", "#f3cb63");
+
+    x.textAlign = "center";
+    x.textBaseline = "alphabetic";
+    x.fillStyle = "#f8f5ec";
+    x.font = '64px "Bebas Neue", sans-serif';
+    x.fillText("HIGH STAKES TRUTH", W / 2, 296);
+    x.fillStyle = "#a7b4ad";
+    x.font = '900 24px Inter, sans-serif';
+    const mode = state.daily
+      ? `DAILY TABLE · ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()}`
+      : "ARCADE RUN";
+    x.fillText(mode.split("").join(" "), W / 2, 340);
+
+    x.fillStyle = won ? "#f3cb63" : "#f26161";
+    x.font = '170px "Bebas Neue", sans-serif';
+    x.fillText($("finalTitle").textContent.toUpperCase(), W / 2, 520);
+
+    x.fillStyle = "#a7b4ad";
+    x.font = '900 26px Inter, sans-serif';
+    x.fillText("FINAL BANK", W / 2, 600);
+    x.fillStyle = "#f3cb63";
+    x.font = '800 132px "JetBrains Mono", monospace';
+    x.fillText(`$${state.balance.toLocaleString("en-US")}`, W / 2, 730);
+
+    const count = state.max;
+    const radius = count > 5 ? 30 : 40;
+    const gap = count > 5 ? 22 : 34;
+    const total = count * radius * 2 + (count - 1) * gap;
+    for (let index = 0; index < count; index += 1) {
+      const result = state.history[index];
+      drawChip(
+        x,
+        W / 2 - total / 2 + radius + index * (radius * 2 + gap),
+        830,
+        radius,
+        result === true ? "#22905a" : result === false ? "#b5303a" : "#2a3b34",
+        result === true ? "#c9f5da" : result === false ? "#ffd6d6" : "#3d5249"
+      );
+    }
+
+    const stats = [
+      [`${state.correct}/${state.max}`, "CORRECT"],
+      [String(state.best), "BEST STREAK"],
+      [riskLabel().toUpperCase(), "RISK"]
+    ];
+    stats.forEach(([value, label], index) => {
+      const cx = W / 2 + (index - 1) * 290;
+      x.fillStyle = "#f8f5ec";
+      x.font = '800 52px "JetBrains Mono", monospace';
+      x.fillText(value, cx, 955);
+      x.fillStyle = "#a7b4ad";
+      x.font = '900 22px Inter, sans-serif';
+      x.fillText(label, cx, 992);
+    });
+
+    x.fillStyle = "rgba(3,16,11,.78)";
+    roundRect(x, 140, 1040, W - 280, 150, 26);
+    x.fill();
+    x.strokeStyle = "rgba(243,203,99,.4)";
+    x.lineWidth = 2;
+    roundRect(x, 140, 1040, W - 280, 150, 26);
+    x.stroke();
+    x.fillStyle = "#f3cb63";
+    x.font = '900 22px Inter, sans-serif';
+    x.fillText("THE HOUSE SAYS", W / 2, 1088);
+    x.fillStyle = "#ece4cf";
+    x.font = 'italic 700 38px Inter, sans-serif';
+    x.fillText($("houseQuote").textContent, W / 2, 1146, W - 340);
+
+    x.fillStyle = "#a7b4ad";
+    x.font = '900 24px Inter, sans-serif';
+    x.fillText("highstakestruth.netlify.app", W / 2, 1262);
+
+    return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  }
+
+  async function shareImage() {
+    sound.click();
+    try {
+      const blob = await renderShareCard();
+      const file = new File([blob], "high-stakes-truth.png", { type: "image/png" });
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], text: "Think you can beat The House? High Stakes Truth" });
+        } catch (_) {}
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "high-stakes-truth.png";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      toast("Share card saved");
+    } catch (_) {
+      toast("Couldn't make the card");
+    }
   }
 
   function updateDailyStreak() {
@@ -623,7 +864,9 @@ import { HighStakesTable } from "./three-table.js";
           Math.max(0, state.max - state.correct)
         )}`,
       `Bank: $${state.balance.toLocaleString("en-US")}`,
-      `Risk: ${riskLabel()}`
+      `Risk: ${riskLabel()}`,
+      `The House: ${$("houseQuote").textContent}`,
+      "highstakestruth.netlify.app"
     ].join("\n");
 
     navigator.clipboard
@@ -840,6 +1083,7 @@ import { HighStakesTable } from "./three-table.js";
     $("replayButton").onclick = () =>
       startGame(state.daily);
     $("shareButton").onclick = share;
+    $("shareImageButton").onclick = shareImage;
 
     document.querySelectorAll("[data-wager]").forEach((button) => {
       button.onclick = () =>
@@ -886,6 +1130,7 @@ import { HighStakesTable } from "./three-table.js";
 
     table = new HighStakesTable($("tableCanvas"));
     table.setSkin(state.skin);
+    table.setMode("home");
     bind();
     refreshHome();
     updateSoundState();
