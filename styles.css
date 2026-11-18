@@ -1292,7 +1292,7 @@ button:disabled {
   padding-top: clamp(150px, 30vh, 300px);
   padding-left: var(--gutter);
   padding-right: var(--gutter);
-  background: linear-gradient(180deg, rgba(3, 16, 11, 0) 0%, rgba(3, 16, 11, 0.35) 22%, rgba(3, 16, 11, 0.86) 42%, rgba(3, 16, 11, 0.96) 100%);
+  background: linear-gradient(180deg, rgba(3, 16, 11, 0) 0%, rgba(3, 16, 11, 0.5) 18%, rgba(3, 16, 11, 0.9) 34%, rgba(3, 16, 11, 0.97) 100%);
 }
 
 .result-view::-webkit-scrollbar { display: none; }
@@ -1417,5 +1417,16 @@ button:disabled {
     background:
       linear-gradient(90deg, rgba(3, 16, 11, 0.9) 0%, rgba(3, 16, 11, 0.72) 34%, rgba(3, 16, 11, 0.1) 58%, rgba(3, 16, 11, 0.25) 100%),
       linear-gradient(180deg, rgba(3, 16, 11, 0.35), transparent 30%, transparent 70%, rgba(3, 16, 11, 0.6));
+  }
+}
+
+@media (min-aspect-ratio: 5/4) and (min-width: 960px) {
+  .result-view {
+    justify-content: center;
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-left: clamp(40px, 7vw, 120px);
+    padding-right: calc(100% - clamp(40px, 7vw, 120px) - 520px);
+    background:
+      linear-gradient(90deg, rgba(3, 16, 11, 0.94) 0%, rgba(3, 16, 11, 0.8) 34%, rgba(3, 16, 11, 0.1) 58%, rgba(3, 16, 11, 0.2) 100%);
   }
 }

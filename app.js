@@ -1134,6 +1134,10 @@ import { HighStakesTable } from "./three-table.js";
     bind();
     refreshHome();
     updateSoundState();
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    }
   }
 
   window.addEventListener(

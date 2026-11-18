@@ -1761,9 +1761,9 @@ export class HighStakesTable {
     this.dealerHeadPitchTarget = 0;
 
     if (mode === "result") {
-      // Close-up on The House across the felt.
-      this.cameraAnchor.set(0, 4.35, 5.6);
-      this.focusAnchor.set(0, 1.85, -3.9);
+      // Close-up on The House, framed in the top third above the results card.
+      this.cameraAnchor.set(0, 4.1, 4.4);
+      this.focusAnchor.set(0, -0.9, -3.9);
     } else if (mode === "home") {
       // Aim at The House so he sits mid-screen, between the title and the menu.
       this.focusAnchor.set(0, 2.15, -3.7);
@@ -1862,6 +1862,11 @@ export class HighStakesTable {
       const wide = this.camera.aspect > 1.25;
       this.focusAnchor.set(wide ? -3.1 : 0, 2.15, -3.7);
       if (wide) this.dealerLookTarget += 0.35;
+    }
+
+    if (this.mode === "result") {
+      // Wide screens put the results column left, so The House reacts on the right.
+      this.focusAnchor.x = this.camera.aspect > 1.25 ? -2.6 : 0;
     }
 
     this.moodAmount = THREE.MathUtils.lerp(
