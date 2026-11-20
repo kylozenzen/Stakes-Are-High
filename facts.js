@@ -15,7 +15,9 @@
   rewrite it before adding it to the game.
 */
 
-export const HST_FACTS = [
+import { HST_EXPANSION } from "./facts-expansion.js";
+
+const HST_ORIGINAL = [
   // ---------- ORIGINAL FACTS ----------
   {text:"Octopuses have three hearts.",answer:true,explanation:"Two hearts pump blood to the gills, while a third circulates blood through the rest of the body.",category:"Animals",difficulty:1},
   {text:"The Great Wall of China is visible from the Moon with the naked eye.",answer:false,explanation:"It is far too narrow to be seen from the Moon without aid.",category:"World",difficulty:1},
@@ -461,6 +463,9 @@ export const HST_FACTS = [
   {text:"The Sahara Desert is located in South America.",answer:false,explanation:"The Sahara is in northern Africa.",category:"World",difficulty:1},
   {text:"Twinkies stay fresh for several decades on the shelf.",answer:false,explanation:"Their real shelf life is measured in weeks, not decades.",category:"Food",difficulty:2}
 ];
+
+// Original bank + the November 2026 expansion (see facts-expansion.js).
+export const HST_FACTS = [...HST_ORIGINAL, ...HST_EXPANSION];
 
 // Also expose as a global so classic (non-module) usage keeps working.
 if (typeof window !== "undefined") window.HST_FACTS = HST_FACTS;

@@ -1104,3 +1104,329 @@ button:disabled {
     padding-block: 0.27rem;
   }
 }
+
+
+/* =====================================================================
+   VISUAL EQUITY PASS
+   One shared 3D scene behind every screen, The House as the face of the
+   brand, real casino chips, and a full-width table on desktop with the
+   controls kept in a centered column.
+   ===================================================================== */
+:root {
+  --col: 600px;
+  --gutter: max(18px, calc((100% - var(--col)) / 2 + 18px));
+  --chip-gold: #f0c75a;
+  --chip-ivory: #e8e2cf;
+  --chip-red: #c43b3b;
+  --chip-black: #202120;
+}
+
+#app {
+  width: 100%;
+  background: #03100b;
+}
+
+/* The table lives behind every view now */
+#tableCanvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.view { z-index: 1; }
+
+/* ---------- Home: The House's table, dimmed behind the menu ---------- */
+.home-view {
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+  background:
+    radial-gradient(70% 40% at 50% 50%, rgba(3, 16, 11, 0), rgba(3, 16, 11, 0.62) 80%),
+    linear-gradient(180deg, rgba(3, 16, 11, 0.66) 0%, rgba(3, 16, 11, 0.28) 30%, rgba(3, 16, 11, 0.05) 50%, rgba(3, 16, 11, 0.55) 66%, rgba(3, 16, 11, 0.92) 100%);
+}
+
+.home-ambient { display: none; }
+
+.house-chip,
+.final-icon {
+  --face: #0f2b20;
+  --spot: var(--gold);
+  --ring: #0e3a29;
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 0.85rem;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--face) 0 49%, var(--spot) 50% 54%, transparent 55%),
+    repeating-conic-gradient(from 7.5deg, var(--spot) 0 15deg, var(--ring) 15deg 45deg);
+  box-shadow:
+    0 0 0 2px #9b6d18,
+    0 8px 22px rgba(0, 0, 0, 0.55),
+    0 0 30px rgba(243, 203, 99, 0.18);
+}
+
+.house-chip {
+  width: 58px;
+  height: 58px;
+  animation: chipSpin 14s linear infinite;
+}
+
+.house-chip span,
+.final-icon span {
+  font-family: "Bebas Neue", sans-serif;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.house-chip span {
+  font-size: 1.15rem;
+  animation: chipSpin 14s linear infinite reverse;
+}
+
+@keyframes chipSpin { to { transform: rotate(360deg); } }
+
+.home-title {
+  text-shadow:
+    0 7px 0 rgba(0, 0, 0, 0.45),
+    0 0 40px rgba(0, 0, 0, 0.6),
+    0 0 34px rgba(243, 203, 99, 0.12);
+}
+
+.home-actions .button-dark,
+.home-nav button,
+.home-scorecard,
+.profile-pill {
+  background: rgba(8, 24, 18, 0.82);
+}
+
+/* ---------- Game: full-bleed table, centered controls ---------- */
+.game-view { background: transparent; }
+
+.game-hud {
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+
+.claim-accessibility,
+.result-readout {
+  left: var(--gutter);
+  right: var(--gutter);
+}
+
+.game-controls {
+  left: max(14px, calc((100% - var(--col)) / 2 + 14px));
+  right: max(14px, calc((100% - var(--col)) / 2 + 14px));
+}
+
+/* Real casino chips: round, edge-spotted, colored like the chips on the felt */
+.chip-buttons {
+  gap: 0.4rem;
+  justify-items: center;
+}
+
+.chip-buttons button {
+  --c: var(--chip-ivory);
+  --edge: #2f6fb5;
+  --rim: #9d957e;
+  --ink: #1d2a3a;
+  width: min(62px, 100%);
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 1;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 900;
+  background:
+    radial-gradient(circle, var(--c) 0 46%, rgba(0, 0, 0, 0.22) 47% 49%, transparent 50%),
+    repeating-conic-gradient(from 11.25deg, var(--edge) 0 22.5deg, var(--c) 22.5deg 45deg);
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.16),
+    0 4px 0 var(--rim),
+    0 8px 16px rgba(0, 0, 0, 0.35);
+}
+
+.chip-buttons button[data-wager="0.5"] { --c: var(--chip-red); --edge: #f4efe3; --rim: #7c1f1f; --ink: #fff; }
+.chip-buttons button[data-wager="0.75"] { --c: var(--chip-black); --edge: var(--gold); --rim: #000; --ink: var(--gold); }
+.chip-buttons button[data-wager="1"] { --c: var(--chip-gold); --edge: #7a4f0d; --rim: #8c5f12; --ink: #2a1a03; }
+
+.chip-buttons button.active {
+  transform: translateY(-4px) scale(1.06);
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.16),
+    0 0 0 3px #fff,
+    0 0 22px rgba(243, 203, 99, 0.55),
+    0 8px 0 var(--rim),
+    0 12px 20px rgba(0, 0, 0, 0.35);
+}
+
+.chip-buttons button.rule-disabled {
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.16), 0 4px 0 var(--rim);
+}
+
+/* True / False match the betting zones on the felt */
+.answer-button { color: #fff; }
+
+.false-answer {
+  background: linear-gradient(180deg, #e65f62, #b5303a);
+  box-shadow: 0 6px 0 #741820, 0 12px 26px rgba(0, 0, 0, 0.34);
+}
+
+.true-answer {
+  background: linear-gradient(180deg, #5fd690, #22905a);
+  box-shadow: 0 6px 0 #11592f, 0 12px 26px rgba(0, 0, 0, 0.34);
+}
+
+.answer-button span { text-shadow: 0 2px 0 rgba(0, 0, 0, 0.22); }
+.answer-button small { opacity: 0.82; }
+
+/* ---------- Result: push in on The House ---------- */
+.result-view {
+  justify-content: flex-start;
+  overflow-y: auto;
+  padding-top: clamp(150px, 30vh, 300px);
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+  background: linear-gradient(180deg, rgba(3, 16, 11, 0) 0%, rgba(3, 16, 11, 0.5) 18%, rgba(3, 16, 11, 0.9) 34%, rgba(3, 16, 11, 0.97) 100%);
+}
+
+.result-view::-webkit-scrollbar { display: none; }
+
+.final-icon {
+  width: 84px;
+  height: 84px;
+  flex: 0 0 auto;
+  font-size: inherit;
+}
+
+.final-icon span { font-size: 1.6rem; }
+
+.final-icon.bust {
+  --spot: #f26161;
+  --ring: #3a0f12;
+  --face: #2a0b0e;
+  box-shadow: 0 0 0 2px #7c1f1f, 0 8px 22px rgba(0, 0, 0, 0.55), 0 0 30px rgba(242, 97, 97, 0.22);
+}
+
+.final-icon.bust span { color: #ff8a8a; }
+
+.house-line {
+  max-width: 380px;
+  margin: 1rem auto 0;
+  padding: 0.7rem 1rem;
+  border: 1px solid rgba(243, 203, 99, 0.25);
+  border-radius: 14px;
+  background: rgba(5, 17, 12, 0.88);
+  color: #ece4cf;
+  font-size: 0.92rem;
+  font-style: italic;
+  line-height: 1.35;
+}
+
+.house-name {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: var(--gold);
+  font-size: 0.56rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.final-card { margin: 1.2rem 0 0.9rem; }
+
+.final-rounds {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+}
+
+.final-rounds i {
+  --c: #2a3b34;
+  --edge: #3d5249;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--c) 0 44%, transparent 46%),
+    repeating-conic-gradient(var(--edge) 0 30deg, var(--c) 30deg 60deg);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.final-rounds i.win { --c: #22905a; --edge: #c9f5da; }
+.final-rounds i.loss { --c: #b5303a; --edge: #ffd6d6; }
+
+.share-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+  width: 100%;
+}
+
+.result-view .share-row + .button { margin-top: 0.8rem; }
+
+/* Scroll and modal views sit over the scene without per-frame blur */
+.modal-view {
+  background: rgba(2, 10, 7, 0.82);
+  backdrop-filter: none;
+}
+
+.scroll-view,
+.modal-view {
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+
+.modal-card {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+@media (max-height: 760px) {
+  .house-chip { width: 46px; height: 46px; margin-bottom: 0.55rem; }
+  .house-chip span { font-size: 0.95rem; }
+  .chip-buttons button { width: min(52px, 100%); font-size: 0.64rem; }
+  .result-view { padding-top: clamp(110px, 22vh, 200px); }
+  .final-icon { width: 66px; height: 66px; }
+  .final-icon span { font-size: 1.3rem; }
+  .result-view h2 { font-size: clamp(2.8rem, 12vw, 4.4rem); }
+}
+
+@media (max-height: 660px) {
+  .house-chip { display: none; }
+  .chip-buttons button { width: min(46px, 100%); font-size: 0.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .house-chip,
+  .house-chip span { animation: none; }
+}
+
+/* Wide screens: menu column on the left, The House framed on the right */
+@media (min-aspect-ratio: 5/4) and (min-width: 960px) {
+  .home-view {
+    padding-left: clamp(40px, 7vw, 120px);
+    padding-right: calc(100% - clamp(40px, 7vw, 120px) - 520px);
+    background:
+      linear-gradient(90deg, rgba(3, 16, 11, 0.9) 0%, rgba(3, 16, 11, 0.72) 34%, rgba(3, 16, 11, 0.1) 58%, rgba(3, 16, 11, 0.25) 100%),
+      linear-gradient(180deg, rgba(3, 16, 11, 0.35), transparent 30%, transparent 70%, rgba(3, 16, 11, 0.6));
+  }
+}
+
+@media (min-aspect-ratio: 5/4) and (min-width: 960px) {
+  .result-view {
+    justify-content: center;
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-left: clamp(40px, 7vw, 120px);
+    padding-right: calc(100% - clamp(40px, 7vw, 120px) - 520px);
+    background:
+      linear-gradient(90deg, rgba(3, 16, 11, 0.94) 0%, rgba(3, 16, 11, 0.8) 34%, rgba(3, 16, 11, 0.1) 58%, rgba(3, 16, 11, 0.2) 100%);
+  }
+}

@@ -53,6 +53,13 @@ export class HighStakesTable {
       -0.28
     );
 
+    // Scene modes: "game" (default table view), "home" (slow cinematic orbit behind
+    // the menu) and "result" (push in on The House, who reacts to the run).
+    this.mode = "game";
+    this.mood = "idle";
+    this.paused = false;
+    this.moodAmount = 0;
+
     this.dealerLook = 0;
     this.dealerLookTarget = 0;
     this.dealerHeadPitch = 0;
@@ -1747,6 +1754,29 @@ export class HighStakesTable {
     });
   }
 
+  setMode(mode, mood = "idle") {
+    this.mode = mode;
+    this.mood = mood;
+    this.dealerLookTarget = 0;
+    this.dealerHeadPitchTarget = 0;
+
+    if (mode === "result") {
+      // Close-up on The House, framed in the top third above the results card.
+      this.cameraAnchor.set(0, 4.1, 4.4);
+      this.focusAnchor.set(0, -0.9, -3.9);
+    } else if (mode === "home") {
+      // Aim at The House so he sits mid-screen, between the title and the menu.
+      this.focusAnchor.set(0, 2.15, -3.7);
+    } else {
+      this.cameraAnchor.copy(this.cameraHome);
+      this.focusAnchor.set(0, 0.5, -0.28);
+    }
+  }
+
+  setPaused(paused) {
+    this.paused = paused;
+  }
+
   resize() {
     const rect = this.canvas.getBoundingClientRect();
 
@@ -1778,6 +1808,7 @@ export class HighStakesTable {
 
   animate = () => {
     requestAnimationFrame(this.animate);
+    if (this.paused) return;
 
     const now = performance.now();
     const elapsed = this.clock.getElapsedTime();
@@ -1816,6 +1847,48 @@ export class HighStakesTable {
 
     const desiredCamera =
       this.cameraAnchor.clone();
+
+    if (this.mode === "home") {
+      // Slow sweep around the table; The House keeps his eyes on you.
+      const sweep = Math.sin(elapsed * 0.11) * 0.36;
+      const radius = 10.2;
+      desiredCamera.set(
+        Math.sin(sweep) * radius,
+        4.6 + Math.sin(elapsed * 0.17) * 0.2,
+        Math.cos(sweep) * radius - 1.4
+      );
+      this.dealerLookTarget = sweep * 0.55;
+      // On wide screens the menu sits left, so frame The House on the right.
+      const wide = this.camera.aspect > 1.25;
+      this.focusAnchor.set(wide ? -3.1 : 0, 2.15, -3.7);
+      if (wide) this.dealerLookTarget += 0.35;
+    }
+
+    if (this.mode === "result") {
+      // Wide screens put the results column left, so The House reacts on the right.
+      this.focusAnchor.x = this.camera.aspect > 1.25 ? -2.6 : 0;
+    }
+
+    this.moodAmount = THREE.MathUtils.lerp(
+      this.moodAmount,
+      this.mode === "result" && this.mood !== "idle" ? 1 : 0,
+      0.05
+    );
+
+    if (this.mood === "beaten") {
+      // Slumped, eyes on the felt.
+      this.dealerHeadPitchTarget = 0.34;
+      this.dealerLookTarget = Math.sin(elapsed * 0.5) * 0.18;
+      this.dealer.position.y -= 0.09 * this.moodAmount;
+      this.dealerHead.rotation.z = Math.sin(elapsed * 0.9) * 0.05 * this.moodAmount;
+    } else if (this.mood === "smug") {
+      // Chuckling, head cocked at the player.
+      this.dealerHeadPitchTarget = -0.08;
+      this.dealer.position.y += Math.abs(Math.sin(elapsed * 7)) * 0.035 * this.moodAmount;
+      this.dealerHead.rotation.z = 0.16 * this.moodAmount;
+    } else {
+      this.dealerHead.rotation.z *= 0.9;
+    }
 
     if (!this.tweens.length) {
       desiredCamera.x +=

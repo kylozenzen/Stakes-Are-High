@@ -8,6 +8,14 @@
 - `three-table.js` — Three.js table, cards, chips, dealer hands, camera, and animations
 - `app.js` — game state, scoring, modes, shop, stats, and UI behavior
 
+## Visual identity
+
+- **The House** is the masked dealer and the face of the brand. He sits behind the home menu, reacts on the results screen (slumped when you win, smug when you bust) and gets a line of dialogue on every result and share card. Lines live in `HOUSE_LINES` in `app.js`.
+- **Shared scene:** one Three.js canvas renders behind every screen. `table.setMode("home" | "game" | "result", mood)` switches camera framing; `table.setPaused(true)` stops rendering behind opaque screens (profile, shop, stats).
+- **Chips:** wager buttons use the same four chip colors as the 3D table (ivory 25%, red 50%, black 75%, gold all-in). True/False buttons match the green and red betting zones on the felt.
+- **Assets:** `assets/` holds the chip app icons, favicon and `social-card.png` (the 1200×630 link preview, rendered from the live table). The results screen also generates a 1080×1350 share card in the browser.
+- `manifest.webmanifest` + `sw.js` make the game installable and playable offline after the first visit. Bump `CACHE` in `sw.js` when you rename or remove core files.
+
 ## Run it
 
 The game loads Three.js from a CDN, so it needs an internet connection.
@@ -24,7 +32,7 @@ You can also drag the whole folder into Netlify.
 
 ## Edit the fact bank
 
-Open `facts.js`. Every entry follows this format:
+The bank has 838 claims: the originals in `facts.js` plus 419 in `facts-expansion.js`, merged into `HST_FACTS`. The expansion leans False so the overall split is about 58/42, which keeps "always pick True" from being a winning strategy. Add new claims to either file. Every entry follows this format:
 
 ```js
 {
