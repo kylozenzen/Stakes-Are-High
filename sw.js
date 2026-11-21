@@ -1,6 +1,6 @@
 // High Stakes Truth service worker: network-first so updates land immediately,
 // with a cached copy (including Three.js from the CDN) for offline play.
-const CACHE = "hst-v1";
+const CACHE = "hst-v2";
 const CORE = [
   "./", "./index.html", "./styles.css", "./app.js", "./three-table.js",
   "./facts.js", "./facts-expansion.js", "./manifest.webmanifest",

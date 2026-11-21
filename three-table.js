@@ -9,6 +9,11 @@ const easeInOut = (t) =>
 const lerp = (start, end, progress) =>
   start + (end - start) * progress;
 
+// Each render pixel covers this many CSS pixels. The scene is drawn small and
+// scaled up with nearest-neighbour filtering (see #tableCanvas in styles.css),
+// which gives the chunky 8-bit look without changing any 3D content.
+const PIXEL_SCALE = 4;
+
 export class HighStakesTable {
   constructor(canvas) {
     if (!canvas) {
@@ -65,9 +70,8 @@ export class HighStakesTable {
     this.dealerHeadPitch = 0;
     this.dealerHeadPitchTarget = 0;
 
-    this.renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio || 1, 1.7)
-    );
+    // Pixel-art look: render at 1:1 and let CSS upscale the canvas.
+    this.renderer.setPixelRatio(1);
     this.renderer.outputColorSpace =
       THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
@@ -1785,8 +1789,8 @@ export class HighStakesTable {
     }
 
     this.renderer.setSize(
-      rect.width,
-      rect.height,
+      Math.max(2, Math.round(rect.width / PIXEL_SCALE)),
+      Math.max(2, Math.round(rect.height / PIXEL_SCALE)),
       false
     );
 
